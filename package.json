@@ -10,6 +10,8 @@
     "test": "node --import tsx --env-file-if-exists .env --test \"src/**/*.test.ts\"",
     "start": "node dist/server.js",
     "dev": "node --import tsx --env-file-if-exists .env --watch src/server.ts",
+    "dev:launcher": "node src/server.launch.mjs",
+    "start:test": "node src/server.launch.mjs",
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
