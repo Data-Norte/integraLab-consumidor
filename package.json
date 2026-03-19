@@ -1,0 +1,30 @@
+{
+  "name": "integralab-consumidor",
+  "version": "1.0.0",
+  "description": "Consumidor da API IntegraLab para laboratorios de apoio.",
+  "license": "ISC",
+  "author": "Data Norte Sistemas",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "test": "node --import tsx --env-file-if-exists .env --test \"src/**/*.test.ts\"",
+    "start": "node dist/server.js",
+    "dev": "node --import tsx --env-file-if-exists .env --watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "2.8.6",
+    "dotenv": "17.3.1",
+    "express": "5.2.1",
+    "helmet": "^8.1.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "25.3.3",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
+  }
+}
