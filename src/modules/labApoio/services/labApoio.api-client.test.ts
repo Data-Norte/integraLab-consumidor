@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import type { RequestListener } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { LabApoioApiClient } from './labApoio.api-client.js';
 import { LabApoioConsumerError } from './labApoio.consumer.errors.js';
 
 async function withHttpServer(
-  handler: Parameters<typeof createServer>[0],
+  handler: RequestListener,
   run: (baseUrl: string) => Promise<void>
 ) {
   const server = createServer(handler);
@@ -23,7 +24,7 @@ async function withHttpServer(
 }
 
 test('LabApoioApiClient envia credenciais de integracao para a API', async () => {
-  await withHttpServer(async (req, res) => {
+  await withHttpServer((req, res) => {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();

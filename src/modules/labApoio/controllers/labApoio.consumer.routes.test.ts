@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
-import express from 'express';
+import express, { type Request } from 'express';
 
 import { createLabApoioConsumerRouter } from './labApoio.consumer.routes.js';
 
@@ -12,7 +12,7 @@ async function withServer(
   const app = express();
   app.use(express.json({
     verify: (req, _res, buffer) => {
-      req.rawBody = buffer.toString('utf8');
+      (req as Request).rawBody = buffer.toString('utf8');
     },
   }));
   app.use('/api/lab-apoio/v1/consumer', createLabApoioConsumerRouter(deps));

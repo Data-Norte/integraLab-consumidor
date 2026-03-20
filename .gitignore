@@ -2,3 +2,5 @@ node_modules
 dist
 .env
 .idea
+postman/logs/
+postman/*.local.postman_environment.json
