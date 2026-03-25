@@ -50,6 +50,7 @@ const defaultApiClient = new LabApoioApiClient({
   baseUrl: env.INTEGRALAB_API_BASE_URL,
   timeoutMs: env.API_REQUEST_TIMEOUT_MS,
 });
+const inFlightAgendaExameItems = new Set<number>();
 
 function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -74,8 +75,61 @@ function buildResultadoFake(exam: PendingExam, now: Date) {
   };
 }
 
+function normalizePdfLine(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/[^\x20-\x7E]/g, '?');
+}
+
+function buildMinimalPdf(lines: string[]) {
+  const contentLines = [
+    'BT',
+    '/F1 12 Tf',
+    '50 780 Td',
+    '16 TL',
+    ...lines.flatMap((line, index) => (
+      index === 0
+        ? [`(${normalizePdfLine(line)}) Tj`]
+        : ['T*', `(${normalizePdfLine(line)}) Tj`]
+    )),
+    'ET',
+  ];
+  const stream = `${contentLines.join('\n')}\n`;
+
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n',
+    `4 0 obj\n<< /Length ${Buffer.byteLength(stream, 'utf8')} >>\nstream\n${stream}endstream\nendobj\n`,
+    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(pdf, 'utf8'));
+    pdf += object;
+  }
+
+  const xrefOffset = Buffer.byteLength(pdf, 'utf8');
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+
+  for (const offset of offsets.slice(1)) {
+    pdf += `${offset.toString().padStart(10, '0')} 00000 n \n`;
+  }
+
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, 'utf8').toString('base64');
+}
+
 function buildPdfBase64Fake(exam: PendingExam, now: Date) {
-  const content = [
+  return buildMinimalPdf([
     'RESULTADO DO EXAME',
     '==================',
     `AgendaExameId: ${exam.agendaExameId}`,
@@ -84,9 +138,7 @@ function buildPdfBase64Fake(exam: PendingExam, now: Date) {
     `Descricao: ${exam.descricaoExame || `Exame ${exam.codexame}`}`,
     'Status: CONCLUIDO',
     `GeradoEm: ${now.toISOString()}`,
-  ].join('\n');
-
-  return Buffer.from(content, 'utf8').toString('base64');
+  ]);
 }
 
 function buildIdempotencyKey(prefix: string, exam: PendingExam) {
@@ -162,13 +214,24 @@ export async function processPendingExams(
     for (const exam of freshRows) {
       attemptedItems.add(exam.agendaExameItemId);
 
-      if (services.processingDelayMs > 0) {
-        await services.sleep(services.processingDelayMs);
+      if (inFlightAgendaExameItems.has(exam.agendaExameItemId)) {
+        logEvent('info', 'pending_exam_skipped_inflight', {
+          tenantId: params.tenantId,
+          agendaExameId: exam.agendaExameId,
+          agendaExameItemId: exam.agendaExameItemId,
+        });
+        continue;
       }
 
-      const now = services.now();
+      inFlightAgendaExameItems.add(exam.agendaExameItemId);
 
       try {
+        if (services.processingDelayMs > 0) {
+          await services.sleep(services.processingDelayMs);
+        }
+
+        const now = services.now();
+
         const pdfPayload = services.sendInlinePdf
           ? {
             idempotencyKey: buildIdempotencyKey('pdf', exam),
@@ -222,6 +285,8 @@ export async function processPendingExams(
           agendaExameItemId: exam.agendaExameItemId,
           error: message,
         });
+      } finally {
+        inFlightAgendaExameItems.delete(exam.agendaExameItemId);
       }
     }
   }
