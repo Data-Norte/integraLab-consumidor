@@ -245,6 +245,10 @@ npm start</code></pre>
         Endpoints da API QA: <code>:kind</code> aceita <code>entrada</code>, <code>saida</code>, <code>resultado</code>, <code>resposta</code> e <code>pdf</code> para itens,
         e <code>contexto</code>, <code>webhook</code> e <code>resumo</code> para execucoes.
       </div>
+      <div class="callout">
+        Se o consumidor estiver publicado atras de proxy por caminho, configure <code>PUBLIC_BASE_PATH=/consumidor</code>.
+        Nesse modo a tela publica responde tambem em <code>/consumidor/qa</code>.
+      </div>
     </section>
 
     <section class="card">
@@ -283,6 +287,7 @@ npm start</code></pre>
         <li><code>LAB_APOIO_VINCULO_ID</code>: vinculo de integracao da conta de laboratorio.</li>
         <li><code>LAB_APOIO_AUTH_SECRET</code>: segredo usado para emitir o JWT de integracao.</li>
         <li><code>LAB_APOIO_WEBHOOK_SECRET</code>: segredo HMAC para validar o webhook.</li>
+        <li><code>PUBLIC_BASE_PATH</code>: prefixo publico opcional, como <code>/consumidor</code>, para publicar o app atras de proxy por caminho.</li>
         <li><code>LAB_APOIO_SEND_INLINE_PDF</code>: quando <code>false</code>, envia so resultado estruturado.</li>
         <li><code>AUTO_PROCESS_WEBHOOK</code>: quando <code>true</code>, processa pendencias ao receber webhook de exames disponiveis.</li>
         <li><code>QA_STORAGE_DIR</code>: diretorio local onde o SQLite e os arquivos por tenant ficam salvos.</li>
@@ -304,6 +309,7 @@ npm run start:test</code></pre>
         <li>Por padrao, o envio de PDF inline esta desabilitado no ambiente local para evitar dependencia de parametros adicionais do Macro.</li>
         <li>Se voce reexecutar o seed da API, o <code>authSecret</code> e o <code>webhookSecret</code> podem ser rotacionados. Nesse caso o <code>.env</code> do consumidor precisa ser atualizado.</li>
         <li>A tela <code>/qa</code> fica publica para QA e permite limpar os arquivos gerados localmente.</li>
+        <li>Com <code>PUBLIC_BASE_PATH=/consumidor</code>, as rotas publicas passam a responder tambem com o prefixo <code>/consumidor</code>.</li>
       </ul>
     </section>
   </main>

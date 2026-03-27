@@ -12,3 +12,4 @@ Observacao:
 - tambem e possivel iniciar por linha de comando com `npm run start:test`
 - o consumidor usa o `.env` local para apontar para a API e para as credenciais do vinculo
 - a view publica fica em `/qa` e os dados persistidos localmente ficam em `.runtime/qa-data`
+- para publicar atras de proxy por caminho, use `PUBLIC_BASE_PATH=/consumidor`; assim a tela tambem responde em `/consumidor/qa`

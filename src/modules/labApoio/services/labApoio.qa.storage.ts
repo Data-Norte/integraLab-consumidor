@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 
-import env from '../../../config/env.js';
+import env, { withPublicBasePath } from '../../../config/env.js';
 
 type NullableJson = string | null;
 type SqlNamedParameters = Record<string, string | number | null>;
@@ -917,13 +917,13 @@ export class LabApoioQaStorage {
         summary: parseJson(run.summary_json),
         files: {
           context: run.context_text_relative_path
-            ? `/api/lab-apoio/v1/consumer/qa/runs/${run.id}/arquivos/contexto`
+            ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/runs/${run.id}/arquivos/contexto`)
             : null,
           webhook: run.webhook_text_relative_path
-            ? `/api/lab-apoio/v1/consumer/qa/runs/${run.id}/arquivos/webhook`
+            ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/runs/${run.id}/arquivos/webhook`)
             : null,
           summary: run.summary_text_relative_path
-            ? `/api/lab-apoio/v1/consumer/qa/runs/${run.id}/arquivos/resumo`
+            ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/runs/${run.id}/arquivos/resumo`)
             : null,
         },
       },
@@ -1045,11 +1045,11 @@ export class LabApoioQaStorage {
     item: Pick<QaItemRow, 'pdf_relative_path' | 'input_text_relative_path' | 'output_text_relative_path' | 'result_json_relative_path' | 'response_json_relative_path'>
   ): Record<QaFileKind, string | null> {
     return {
-      entrada: item.input_text_relative_path ? `/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/entrada` : null,
-      saida: item.output_text_relative_path ? `/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/saida` : null,
-      resultado: item.result_json_relative_path ? `/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/resultado` : null,
-      resposta: item.response_json_relative_path ? `/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/resposta` : null,
-      pdf: item.pdf_relative_path ? `/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/pdf` : null,
+      entrada: item.input_text_relative_path ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/entrada`) : null,
+      saida: item.output_text_relative_path ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/saida`) : null,
+      resultado: item.result_json_relative_path ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/resultado`) : null,
+      resposta: item.response_json_relative_path ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/resposta`) : null,
+      pdf: item.pdf_relative_path ? withPublicBasePath(`/api/lab-apoio/v1/consumer/qa/itens/${itemId}/arquivos/pdf`) : null,
     };
   }
 

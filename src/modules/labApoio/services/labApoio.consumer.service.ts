@@ -1,4 +1,4 @@
-import env from '../../../config/env.js';
+import env, { withPublicBasePath } from '../../../config/env.js';
 import { logEvent } from '../../../shared/logging/logger.js';
 import { LabApoioApiClient, type LabApoioApiClientLike } from './labApoio.api-client.js';
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
@@ -353,7 +353,7 @@ export async function processPendingExams(
 
   const summary: ProcessPendingExamsResult = {
     runId: run.id,
-    qaUrl: `/qa?runId=${run.id}`,
+    qaUrl: `${withPublicBasePath('/qa')}?runId=${run.id}`,
     tenantId: params.tenantId,
     tenantName: params.tenantName ?? null,
     ambiente: token.ambiente,

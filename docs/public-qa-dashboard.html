@@ -535,9 +535,9 @@
       <div class="note-card">
         <strong>Atalhos uteis</strong>
         <div class="row-actions">
-          <a class="link-chip" href="/health" target="_blank" rel="noreferrer">Health do servidor</a>
-          <a class="link-chip" href="/api/lab-apoio/v1/consumer/health" target="_blank" rel="noreferrer">Health do modulo</a>
-          <a class="link-chip" href="/docs/como-usar-consumidor.html" target="_blank" rel="noreferrer">Guia HTML</a>
+          <a class="link-chip" id="serverHealthLink" href="/health" target="_blank" rel="noreferrer">Health do servidor</a>
+          <a class="link-chip" id="moduleHealthLink" href="/api/lab-apoio/v1/consumer/health" target="_blank" rel="noreferrer">Health do modulo</a>
+          <a class="link-chip" id="guideLink" href="/docs/como-usar-consumidor.html" target="_blank" rel="noreferrer">Guia HTML</a>
         </div>
       </div>
     </div>
@@ -694,7 +694,21 @@ ORDER BY id DESC;</pre>
 </div>
 
 <script>
-  const apiBase = '/api/lab-apoio/v1/consumer/qa';
+  function resolveBasePath() {
+    const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    const qaSuffix = '/qa';
+    if (normalizedPath === qaSuffix) {
+      return '';
+    }
+    if (normalizedPath.endsWith(qaSuffix)) {
+      return normalizedPath.slice(0, normalizedPath.length - qaSuffix.length);
+    }
+    return '';
+  }
+
+  const basePath = resolveBasePath();
+  const withBasePath = path => `${basePath}${path}`;
+  const apiBase = withBasePath('/api/lab-apoio/v1/consumer/qa');
   const state = {
     overview: null,
     selectedItemId: null,
@@ -711,6 +725,9 @@ ORDER BY id DESC;</pre>
     detailContainer: document.getElementById('detailContainer'),
     helpPanel: document.getElementById('helpPanel'),
     helpButton: document.getElementById('helpButton'),
+    serverHealthLink: document.getElementById('serverHealthLink'),
+    moduleHealthLink: document.getElementById('moduleHealthLink'),
+    guideLink: document.getElementById('guideLink'),
     refreshButton: document.getElementById('refreshButton'),
     clearButton: document.getElementById('clearButton'),
     publicUrl: document.getElementById('publicUrl'),
@@ -720,9 +737,15 @@ ORDER BY id DESC;</pre>
     kpiDuplicate: document.getElementById('kpiDuplicate'),
   };
 
+  function setShortcutLinks() {
+    elements.serverHealthLink.href = withBasePath('/health');
+    elements.moduleHealthLink.href = withBasePath('/api/lab-apoio/v1/consumer/health');
+    elements.guideLink.href = withBasePath('/docs/como-usar-consumidor.html');
+  }
+
   function setPublicUrl() {
     const current = new URL(window.location.href);
-    current.pathname = '/qa';
+    current.pathname = withBasePath('/qa');
     current.search = '';
     elements.publicUrl.textContent = current.toString();
   }
@@ -1037,6 +1060,7 @@ ORDER BY id DESC;</pre>
   }
 
   async function bootstrap() {
+    setShortcutLinks();
     setPublicUrl();
     syncFiltersFromUrl();
     bindEvents();

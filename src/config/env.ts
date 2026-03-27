@@ -45,11 +45,22 @@ function parseCsv(value: string | undefined) {
     .filter(Boolean);
 }
 
+function parseBasePath(value: string | undefined) {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed || trimmed === '/') {
+    return '';
+  }
+
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return withLeadingSlash.replace(/\/+$/, '');
+}
+
 const env = {
   PORT: parsePositiveInt(process.env.PORT, 3001),
   NODE_ENV: process.env.NODE_ENV || 'development',
   APP_ENV: process.env.APP_ENV || 'development',
   ALLOW_ORIGINS: parseCsv(process.env.ALLOW_ORIGINS),
+  PUBLIC_BASE_PATH: parseBasePath(process.env.PUBLIC_BASE_PATH),
   INTEGRALAB_API_BASE_URL: (process.env.INTEGRALAB_API_BASE_URL || 'http://localhost:3000').replace(/\/+$/, ''),
   LAB_APOIO_TENANT_ID: process.env.LAB_APOIO_TENANT_ID?.trim() || '',
   LAB_APOIO_VINCULO_ID: process.env.LAB_APOIO_VINCULO_ID?.trim() || '',
@@ -93,6 +104,15 @@ if ((env.NODE_ENV || 'development') === 'production') {
     console.error(`[env] Variaveis obrigatorias ausentes: ${required.join(', ')}`);
     process.exit(1);
   }
+}
+
+export function withPublicBasePath(targetPath: string) {
+  if (!targetPath) {
+    return env.PUBLIC_BASE_PATH || '/';
+  }
+
+  const normalizedTarget = targetPath.startsWith('/') ? targetPath : `/${targetPath}`;
+  return `${env.PUBLIC_BASE_PATH}${normalizedTarget}` || '/';
 }
 
 export default env;

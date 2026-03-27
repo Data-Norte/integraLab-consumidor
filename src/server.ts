@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import env from './config/env.js';
+import env, { withPublicBasePath } from './config/env.js';
 import labApoioConsumerRoutes from './modules/labApoio/controllers/labApoio.consumer.routes.js';
 import labApoioQaRoutes from './modules/labApoio/controllers/labApoio.qa.routes.js';
 import { logEvent } from './shared/logging/logger.js';
@@ -18,6 +18,7 @@ const docsDir = path.join(projectRoot, 'docs');
 const qaPagePath = path.join(docsDir, 'public-qa-dashboard.html');
 
 const app = express();
+const routePrefixes = env.PUBLIC_BASE_PATH ? ['', env.PUBLIC_BASE_PATH] : [''];
 
 if (env.ALLOW_ORIGINS.length > 0) {
   app.use(cors({
@@ -38,34 +39,52 @@ app.use(express.json({
   },
 }));
 
-app.use('/api/lab-apoio/v1/consumer', labApoioConsumerRoutes);
-app.use('/api/lab-apoio/v1/consumer/qa', labApoioQaRoutes);
-app.use('/docs', express.static(docsDir, {
-  extensions: ['html'],
-}));
+for (const prefix of routePrefixes) {
+  const resolveRoutePath = (targetPath: string) => `${prefix}${targetPath}` || targetPath;
+
+  app.use(resolveRoutePath('/api/lab-apoio/v1/consumer'), labApoioConsumerRoutes);
+  app.use(resolveRoutePath('/api/lab-apoio/v1/consumer/qa'), labApoioQaRoutes);
+  app.use(resolveRoutePath('/docs'), express.static(docsDir, {
+    extensions: ['html'],
+  }));
+}
 
 app.get('/', (_req: Request, res: Response) => {
-  res.redirect('/qa');
+  res.redirect(withPublicBasePath('/qa'));
 });
 
-app.get('/qa', (_req: Request, res: Response) => {
+const sendQaPage = (_req: Request, res: Response) => {
   res.sendFile(qaPagePath);
-});
+};
 
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/qa', sendQaPage);
+if (env.PUBLIC_BASE_PATH) {
+  app.get(env.PUBLIC_BASE_PATH, (_req: Request, res: Response) => {
+    res.redirect(withPublicBasePath('/qa'));
+  });
+  app.get(withPublicBasePath('/qa'), sendQaPage);
+}
+
+const sendHealth = (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     service: 'integralab-consumidor',
     uptimeSeconds: Math.round(process.uptime()),
     now: new Date().toISOString(),
   });
-});
+};
+
+app.get('/health', sendHealth);
+if (env.PUBLIC_BASE_PATH) {
+  app.get(withPublicBasePath('/health'), sendHealth);
+}
 
 const server = app.listen(env.PORT, () => {
   logEvent('info', 'server_started', {
     port: env.PORT,
     ambiente: env.APP_ENV,
     apiBaseUrl: env.INTEGRALAB_API_BASE_URL,
+    publicBasePath: env.PUBLIC_BASE_PATH,
   });
 });
 
