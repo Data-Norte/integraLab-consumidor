@@ -63,6 +63,7 @@ const env = {
   WEBHOOK_MAX_AGE_MS: parsePositiveInt(process.env.WEBHOOK_MAX_AGE_MS, 300000),
   AUTO_PROCESS_WEBHOOK: parseBoolean(process.env.AUTO_PROCESS_WEBHOOK, true),
   LAB_APOIO_SEND_INLINE_PDF: parseBoolean(process.env.LAB_APOIO_SEND_INLINE_PDF, false),
+  QA_STORAGE_DIR: process.env.QA_STORAGE_DIR?.trim() || '.runtime/qa-data',
 };
 
 const varsToCheck = [

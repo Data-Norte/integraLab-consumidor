@@ -36,6 +36,21 @@ export const pendingExamsDataSchema = z.object({
   rows: z.array(pendingExamSchema),
 });
 
+export const pendingExamDetailItemSchema = z.object({
+  agendaExameItemId: z.number().int().positive(),
+  codexame: z.number().int().positive(),
+  descricaoExame: z.string().nullish(),
+  status: z.string().min(1),
+  dataAgenda: z.string().nullish(),
+  pacienteId: z.number().int().positive().nullish(),
+  medicoId: z.number().int().positive().nullish(),
+});
+
+export const pendingExamDetailDataSchema = z.object({
+  agendaExameId: z.number().int().positive(),
+  itens: z.array(pendingExamDetailItemSchema).min(1),
+});
+
 export const resultadoRecebidoSchema = z.object({
   duplicado: z.boolean().optional(),
   message: z.string().optional(),
@@ -108,5 +123,6 @@ export const labApoioWebhookPayloadSchema = z.union([
 export type IntegrationTokenData = z.infer<typeof integrationTokenDataSchema>;
 export type PendingExam = z.infer<typeof pendingExamSchema>;
 export type PendingExamsData = z.infer<typeof pendingExamsDataSchema>;
+export type PendingExamDetail = z.infer<typeof pendingExamDetailDataSchema>;
 export type ResultadoRecebido = z.infer<typeof resultadoRecebidoSchema>;
 export type LabApoioWebhookPayload = z.infer<typeof labApoioWebhookPayloadSchema>;

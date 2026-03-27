@@ -2,17 +2,25 @@ import env from '../../../config/env.js';
 import { logEvent } from '../../../shared/logging/logger.js';
 import { LabApoioApiClient, type LabApoioApiClientLike } from './labApoio.api-client.js';
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
-import { type PendingExam } from './labApoio.schemas.js';
+import { getLabApoioQaStorage, type CreateQaRunInput, type LabApoioQaStorage } from './labApoio.qa.storage.js';
+import { buildSyntheticExamArtifacts } from './labApoio.result-generator.js';
+import { type PendingExam, type PendingExamDetail } from './labApoio.schemas.js';
 
 export type ProcessPendingExamsParams = {
   tenantId: string;
+  tenantName?: string | null;
   limit?: number;
   triggerEvent?: string;
   triggerEventId?: string;
+  source?: 'WEBHOOK' | 'MANUAL';
+  webhookContext?: CreateQaRunInput['webhook'];
 };
 
 export type ProcessPendingExamsResult = {
+  runId: string;
+  qaUrl: string;
   tenantId: string;
+  tenantName: string | null;
   ambiente: string;
   vinculoId: string;
   triggerEvent: string;
@@ -24,17 +32,20 @@ export type ProcessPendingExamsResult = {
   duplicateCount: number;
   completionReason: 'SEM_PENDENCIAS' | 'LOTE_REPETIDO' | 'MAX_BATCHES_REACHED';
   results: Array<{
+    qaItemId?: string;
     agendaExameId: number;
     agendaExameItemId: number;
     codexame: number;
     status: 'SUCESSO' | 'ERRO';
     duplicado?: boolean;
     erro?: string;
+    resultPreview?: string | null;
   }>;
 };
 
 type ProcessPendingExamsDeps = {
   apiClient?: LabApoioApiClientLike;
+  qaStorage?: Pick<LabApoioQaStorage, 'createRun' | 'finishRun' | 'recordItem'>;
   vinculoId?: string;
   authSecret?: string;
   fornecId?: number | null;
@@ -55,42 +66,61 @@ function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
 
-function buildResultadoFake(exam: PendingExam, now: Date) {
+function buildIdempotencyKey(prefix: string, exam: PendingExam) {
+  return `${prefix}-${exam.agendaExameId}-${exam.agendaExameItemId}`;
+}
+
+async function getExamDetailSafe(
+  apiClient: LabApoioApiClientLike,
+  token: string,
+  tenantId: string,
+  exam: PendingExam,
+  cache: Map<number, PendingExamDetail | null>
+) {
+  if (cache.has(exam.agendaExameId)) {
+    return cache.get(exam.agendaExameId) ?? null;
+  }
+
+  try {
+    const detail = await apiClient.getPendingExamDetail({
+      token,
+      tenantId,
+      agendaExameId: exam.agendaExameId,
+    });
+    cache.set(exam.agendaExameId, detail);
+    return detail;
+  } catch (error) {
+    const message = toErrorMessage(error);
+    cache.set(exam.agendaExameId, null);
+    logEvent('warn', 'pending_exam_detail_unavailable', {
+      tenantId,
+      agendaExameId: exam.agendaExameId,
+      agendaExameItemId: exam.agendaExameItemId,
+      error: message,
+    });
+    return null;
+  }
+}
+
+function buildExamDetailSnapshot(exam: PendingExam, detail: PendingExamDetail | null) {
+  if (detail) {
+    return detail;
+  }
+
   return {
-    status: 'CONCLUIDO',
-    observacao: `Resultado simulado para ${exam.descricaoExame || `exame ${exam.codexame}`}`,
-    liberado: true,
-    prejudicado: false,
-    parametros: [
+    agendaExameId: exam.agendaExameId,
+    itens: [
       {
-        descricao: exam.descricaoExame || `Exame ${exam.codexame}`,
-        valor: '13.5',
-        unidade1: 'g/dL',
-        liberado: true,
-        prejudicado: false,
-        resultadoPadrao: now.toISOString(),
+        agendaExameItemId: exam.agendaExameItemId,
+        codexame: exam.codexame,
+        descricaoExame: exam.descricaoExame,
+        status: exam.status,
+        dataAgenda: exam.dataAgenda,
+        pacienteId: exam.pacienteId,
+        medicoId: null,
       },
     ],
   };
-}
-
-function buildPdfBase64Fake(exam: PendingExam, now: Date) {
-  const content = [
-    'RESULTADO DO EXAME',
-    '==================',
-    `AgendaExameId: ${exam.agendaExameId}`,
-    `AgendaExameItemId: ${exam.agendaExameItemId}`,
-    `CodExame: ${exam.codexame}`,
-    `Descricao: ${exam.descricaoExame || `Exame ${exam.codexame}`}`,
-    'Status: CONCLUIDO',
-    `GeradoEm: ${now.toISOString()}`,
-  ].join('\n');
-
-  return Buffer.from(content, 'utf8').toString('base64');
-}
-
-function buildIdempotencyKey(prefix: string, exam: PendingExam) {
-  return `${prefix}-${exam.agendaExameId}-${exam.agendaExameItemId}`;
 }
 
 export async function processPendingExams(
@@ -99,6 +129,7 @@ export async function processPendingExams(
 ): Promise<ProcessPendingExamsResult> {
   const services = {
     apiClient: deps.apiClient ?? defaultApiClient,
+    qaStorage: deps.qaStorage ?? getLabApoioQaStorage(),
     vinculoId: deps.vinculoId ?? env.LAB_APOIO_VINCULO_ID,
     authSecret: deps.authSecret ?? env.LAB_APOIO_AUTH_SECRET,
     fornecId: deps.fornecId ?? env.LAB_APOIO_FORNEC_ID,
@@ -126,14 +157,28 @@ export async function processPendingExams(
     segredo: services.authSecret,
   });
 
+  const run = services.qaStorage.createRun({
+    tenantId: params.tenantId,
+    tenantName: params.tenantName ?? null,
+    vinculoId: services.vinculoId,
+    source: params.source ?? 'MANUAL',
+    triggerEvent: params.triggerEvent ?? 'MANUAL',
+    triggerEventId: params.triggerEventId ?? null,
+    webhook: params.webhookContext ?? null,
+    createdAt: services.now().toISOString(),
+  });
+
   logEvent('info', 'pending_processing_started', {
     tenantId: params.tenantId,
+    tenantName: params.tenantName ?? null,
     vinculoId: services.vinculoId,
     triggerEvent: params.triggerEvent ?? 'MANUAL',
     triggerEventId: params.triggerEventId ?? null,
+    runId: run.id,
   });
 
   const attemptedItems = new Set<number>();
+  const detailCache = new Map<number, PendingExamDetail | null>();
   const results: ProcessPendingExamsResult['results'] = [];
   let batches = 0;
   let completionReason: ProcessPendingExamsResult['completionReason'] = 'SEM_PENDENCIAS';
@@ -167,36 +212,76 @@ export async function processPendingExams(
       }
 
       const now = services.now();
+      const detail = await getExamDetailSafe(
+        services.apiClient,
+        token.token,
+        params.tenantId,
+        exam,
+        detailCache
+      );
+      const detailSnapshot = buildExamDetailSnapshot(exam, detail);
+      const generated = buildSyntheticExamArtifacts({
+        tenantId: params.tenantId,
+        exam,
+        examDetail: detail,
+        now,
+      });
 
-      try {
-        const pdfPayload = services.sendInlinePdf
+      const payload = {
+        agendaExameItemId: exam.agendaExameItemId,
+        codexame: exam.codexame,
+        idempotencyKey: buildIdempotencyKey('resultado', exam),
+        resultado: generated.result,
+        pdf: services.sendInlinePdf
           ? {
             idempotencyKey: buildIdempotencyKey('pdf', exam),
-            nomeArquivo: `resultado-${exam.agendaExameId}-${exam.agendaExameItemId}.pdf`,
-            pdfBase64: buildPdfBase64Fake(exam, now),
+            nomeArquivo: generated.pdfFileName,
+            pdfBase64: generated.pdfBase64,
             fornecId: services.fornecId ?? undefined,
           }
-          : undefined;
+          : undefined,
+      };
 
+      try {
         const envio = await services.apiClient.sendResultado({
           token: token.token,
           tenantId: params.tenantId,
           agendaExameId: exam.agendaExameId,
-          payload: {
-            agendaExameItemId: exam.agendaExameItemId,
-            codexame: exam.codexame,
-            idempotencyKey: buildIdempotencyKey('resultado', exam),
-            resultado: buildResultadoFake(exam, now),
-            pdf: pdfPayload,
-          },
+          payload,
+        });
+
+        const qaItem = services.qaStorage.recordItem({
+          runId: run.id,
+          tenantId: params.tenantId,
+          tenantName: params.tenantName ?? null,
+          vinculoId: services.vinculoId,
+          ambiente: token.ambiente,
+          agendaExameId: exam.agendaExameId,
+          agendaExameItemId: exam.agendaExameItemId,
+          codexame: exam.codexame,
+          descricaoExame: exam.descricaoExame,
+          status: 'SUCESSO',
+          duplicado: Boolean(envio.duplicado),
+          resultPreview: generated.resultPreview,
+          pendingExam: exam,
+          examDetail: detailSnapshot,
+          generatedResult: generated.result,
+          sendPayload: payload,
+          apiResponse: envio,
+          pdfBuffer: generated.pdfBuffer,
+          pdfFileName: generated.pdfFileName,
+          receivedAt: now.toISOString(),
+          processedAt: services.now().toISOString(),
         });
 
         results.push({
+          qaItemId: qaItem.id,
           agendaExameId: exam.agendaExameId,
           agendaExameItemId: exam.agendaExameItemId,
           codexame: exam.codexame,
           status: 'SUCESSO',
           duplicado: Boolean(envio.duplicado),
+          resultPreview: generated.resultPreview,
         });
 
         logEvent('info', 'pending_exam_processed', {
@@ -204,16 +289,46 @@ export async function processPendingExams(
           agendaExameId: exam.agendaExameId,
           agendaExameItemId: exam.agendaExameItemId,
           duplicado: Boolean(envio.duplicado),
+          runId: run.id,
+          qaItemId: qaItem.id,
         });
       } catch (error) {
         const message = toErrorMessage(error);
+        const qaItem = services.qaStorage.recordItem({
+          runId: run.id,
+          tenantId: params.tenantId,
+          tenantName: params.tenantName ?? null,
+          vinculoId: services.vinculoId,
+          ambiente: token.ambiente,
+          agendaExameId: exam.agendaExameId,
+          agendaExameItemId: exam.agendaExameItemId,
+          codexame: exam.codexame,
+          descricaoExame: exam.descricaoExame,
+          status: 'ERRO',
+          erro: message,
+          resultPreview: generated.resultPreview,
+          pendingExam: exam,
+          examDetail: detailSnapshot,
+          generatedResult: generated.result,
+          sendPayload: payload,
+          apiResponse: {
+            success: false,
+            message,
+          },
+          pdfBuffer: generated.pdfBuffer,
+          pdfFileName: generated.pdfFileName,
+          receivedAt: now.toISOString(),
+          processedAt: services.now().toISOString(),
+        });
 
         results.push({
+          qaItemId: qaItem.id,
           agendaExameId: exam.agendaExameId,
           agendaExameItemId: exam.agendaExameItemId,
           codexame: exam.codexame,
           status: 'ERRO',
           erro: message,
+          resultPreview: generated.resultPreview,
         });
 
         logEvent('error', 'pending_exam_failed', {
@@ -221,6 +336,8 @@ export async function processPendingExams(
           agendaExameId: exam.agendaExameId,
           agendaExameItemId: exam.agendaExameItemId,
           error: message,
+          runId: run.id,
+          qaItemId: qaItem.id,
         });
       }
     }
@@ -235,7 +352,10 @@ export async function processPendingExams(
   const duplicateCount = results.filter(result => result.duplicado).length;
 
   const summary: ProcessPendingExamsResult = {
+    runId: run.id,
+    qaUrl: `/qa?runId=${run.id}`,
     tenantId: params.tenantId,
+    tenantName: params.tenantName ?? null,
     ambiente: token.ambiente,
     vinculoId: token.vinculoId,
     triggerEvent: params.triggerEvent ?? 'MANUAL',
@@ -249,6 +369,19 @@ export async function processPendingExams(
     results,
   };
 
+  services.qaStorage.finishRun({
+    runId: run.id,
+    ambiente: summary.ambiente,
+    batches: summary.batches,
+    attempted: summary.attempted,
+    successCount: summary.successCount,
+    errorCount: summary.errorCount,
+    duplicateCount: summary.duplicateCount,
+    completionReason: summary.completionReason,
+    summary,
+    finishedAt: services.now().toISOString(),
+  });
+
   logEvent('info', 'pending_processing_finished', {
     tenantId: summary.tenantId,
     batches: summary.batches,
@@ -257,6 +390,7 @@ export async function processPendingExams(
     errorCount: summary.errorCount,
     duplicateCount: summary.duplicateCount,
     completionReason: summary.completionReason,
+    runId: summary.runId,
   });
 
   return summary;

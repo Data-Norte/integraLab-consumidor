@@ -70,8 +70,22 @@ async function buildWebhookResponse(
 
   const result = await services.processPendingExams({
     tenantId: parsed.headers.tenantId,
+    tenantName: parsed.payload.tenant.nome,
     triggerEvent: parsed.payload.event,
     triggerEventId: parsed.headers.eventId,
+    source: 'WEBHOOK',
+    webhookContext: {
+      headers: {
+        tenantId: parsed.headers.tenantId,
+        vinculoId: parsed.headers.vinculoId,
+        eventId: parsed.headers.eventId,
+        timestamp: parsed.headers.timestamp,
+        signature: parsed.headers.signature,
+        signatureAlg: parsed.headers.signatureAlg,
+      },
+      payload: parsed.payload,
+      rawBody: req.rawBody || '',
+    },
   });
 
   return {
@@ -139,6 +153,7 @@ export function createLabApoioConsumerRouter(
 
       const result = await services.processPendingExams({
         tenantId,
+        source: 'MANUAL',
         limit: body.limit,
         triggerEvent: 'MANUAL',
       });

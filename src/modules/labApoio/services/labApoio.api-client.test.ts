@@ -109,6 +109,46 @@ test('LabApoioApiClient envia headers de tenant e bearer para listar pendencias'
   });
 });
 
+test('LabApoioApiClient consulta o detalhe do exame pendente', async () => {
+  await withHttpServer((req, res) => {
+    assert.equal(req.url, '/api/lab-apoio/v1/integracao/exames/100');
+    assert.equal(req.headers.authorization, 'Bearer jwt');
+    assert.equal(req.headers['x-tenant-id'], 'tenant-001');
+
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        agendaExameId: 100,
+        itens: [
+          {
+            agendaExameItemId: 200,
+            codexame: 300,
+            descricaoExame: 'Hemoglobina',
+            status: 'PENDENTE',
+            dataAgenda: null,
+            pacienteId: null,
+            medicoId: null,
+          },
+        ],
+      },
+    }));
+  }, async baseUrl => {
+    const client = new LabApoioApiClient({
+      baseUrl,
+      timeoutMs: 3000,
+    });
+
+    const detail = await client.getPendingExamDetail({
+      token: 'jwt',
+      tenantId: 'tenant-001',
+      agendaExameId: 100,
+    });
+
+    assert.equal(detail.itens[0].agendaExameItemId, 200);
+  });
+});
+
 test('LabApoioApiClient converte erro upstream em LabApoioConsumerError', async () => {
   await withHttpServer((_req, res) => {
     res.statusCode = 401;

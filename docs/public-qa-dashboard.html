@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IntegraLab Consumidor QA</title>
+  <style>
+    :root {
+      --bg: #f2ece3;
+      --bg-2: #fbf7f1;
+      --panel: rgba(255, 250, 244, 0.94);
+      --panel-strong: #fffdf9;
+      --line: #ddcfbf;
+      --text: #1d272d;
+      --muted: #5a6770;
+      --accent: #0d5d63;
+      --accent-2: #bc6931;
+      --accent-3: #1f4f85;
+      --ok: #2f6b48;
+      --warn: #9b6a1c;
+      --error: #8e3737;
+      --shadow: 0 20px 45px rgba(29, 39, 45, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: "Trebuchet MS", Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(13, 93, 99, 0.14), transparent 28%),
+        radial-gradient(circle at top left, rgba(188, 105, 49, 0.12), transparent 24%),
+        linear-gradient(180deg, #ece3d7 0%, var(--bg) 36%, var(--bg-2) 100%);
+    }
+
+    body {
+      padding: 24px;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0;
+      line-height: 1.1;
+      font-family: Georgia, "Times New Roman", serif;
+      letter-spacing: 0.02em;
+    }
+
+    p,
+    li,
+    label,
+    button,
+    input,
+    select {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code,
+    pre {
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    .app {
+      display: grid;
+      gap: 18px;
+      max-width: 1620px;
+      margin: 0 auto;
+    }
+
+    .hero,
+    .panel,
+    .help-panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-strong));
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 18px;
+      padding: 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: rgba(13, 93, 99, 0.1);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin-top: 14px;
+      font-size: clamp(34px, 5vw, 56px);
+      max-width: 820px;
+    }
+
+    .hero p {
+      max-width: 780px;
+      color: var(--muted);
+      margin: 14px 0 0;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 12px;
+    }
+
+    .note-card,
+    .kpi-card,
+    .help-card {
+      border: 1px solid rgba(221, 207, 191, 0.9);
+      border-radius: 20px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .note-card strong,
+    .help-card strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .kpi-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -22px -22px auto;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(13, 93, 99, 0.08);
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .kpi-value {
+      margin-top: 10px;
+      font-size: 32px;
+      font-weight: 800;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 16px;
+      padding: 18px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .field select,
+    .field input {
+      width: 100%;
+      border: 1px solid #cebda9;
+      border-radius: 14px;
+      background: #fffdfb;
+      padding: 12px 13px;
+      color: var(--text);
+    }
+
+    .runs-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .run-chip {
+      border: 1px solid rgba(13, 93, 99, 0.18);
+      background: rgba(13, 93, 99, 0.07);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .run-chip.active {
+      background: var(--accent);
+      color: #f5f9fa;
+    }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0f767e);
+      color: #f7fbfc;
+    }
+
+    .btn-secondary {
+      background: #efe5d8;
+      color: var(--text);
+      border: 1px solid #decdb8;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--error), #b24a4a);
+      color: #fff6f6;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 18px;
+      min-height: 760px;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .panel-head p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid #e7dacd;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 12px 11px;
+      text-align: left;
+      border-bottom: 1px solid #efe6dc;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #f3e9dd;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      z-index: 1;
+    }
+
+    tr {
+      cursor: pointer;
+      transition: background 0.18s ease;
+    }
+
+    tr:hover {
+      background: rgba(13, 93, 99, 0.06);
+    }
+
+    tr.active {
+      background: rgba(13, 93, 99, 0.12);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge-ok {
+      background: rgba(47, 107, 72, 0.1);
+      color: var(--ok);
+    }
+
+    .badge-error {
+      background: rgba(142, 55, 55, 0.1);
+      color: var(--error);
+    }
+
+    .badge-warn {
+      background: rgba(155, 106, 28, 0.1);
+      color: var(--warn);
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .detail-card {
+      border: 1px solid #e7dacd;
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .detail-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .meta-item {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(13, 93, 99, 0.05);
+      border: 1px solid rgba(13, 93, 99, 0.08);
+    }
+
+    .meta-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 5px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px;
+      border-radius: 16px;
+      overflow: auto;
+      background: #152126;
+      color: #eef4f7;
+      border: 1px solid rgba(221, 207, 191, 0.24);
+      max-height: 290px;
+    }
+
+    .json-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pdf-frame {
+      width: 100%;
+      height: 420px;
+      border: 1px solid #dccfbe;
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 320px;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed #d8c8b6;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    .help-panel {
+      display: none;
+      padding: 20px;
+    }
+
+    .help-panel.open {
+      display: grid;
+      gap: 14px;
+    }
+
+    .help-columns {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .help-card pre {
+      margin-top: 12px;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid #e3d5c6;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .link-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 79, 133, 0.18);
+      background: rgba(31, 79, 133, 0.08);
+      color: var(--accent-3);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1320px) {
+      .hero,
+      .filters,
+      .layout,
+      .help-columns,
+      .json-grid,
+      .top-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 820px) {
+      body {
+        padding: 14px;
+      }
+
+      .filter-grid,
+      .detail-meta {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <section class="hero">
+    <div>
+      <span class="eyebrow">IntegraLab Consumidor</span>
+      <h1>Painel publico de QA para acompanhar webhooks, resultados e PDFs gerados</h1>
+      <p>
+        Esta tela replica o conceito de "Logs de integracao" do console, mas focada no consumidor de testes.
+        Cada item processado gera arquivos locais por tenant, registra o payload recebido da API, o resultado devolvido e disponibiliza o PDF gerado para o QA validar o fluxo completo.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary" id="refreshButton" type="button">Atualizar agora</button>
+        <button class="btn-secondary" id="helpButton" type="button">Ajuda / Como testar</button>
+        <button class="btn-danger" id="clearButton" type="button">Limpar diretorios</button>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="note-card">
+        <strong>URL publica sugerida</strong>
+        <div class="subtle" id="publicUrl">Carregando...</div>
+      </div>
+      <div class="note-card">
+        <strong>Objetivo desta pagina</strong>
+        <p>
+          Dar visibilidade real para o QA: o que entrou, o que saiu, qual tenant foi afetado, qual PDF foi montado
+          e quais arquivos foram gravados localmente para auditoria tecnica.
+        </p>
+      </div>
+      <div class="note-card">
+        <strong>Atalhos uteis</strong>
+        <div class="row-actions">
+          <a class="link-chip" href="/health" target="_blank" rel="noreferrer">Health do servidor</a>
+          <a class="link-chip" href="/api/lab-apoio/v1/consumer/health" target="_blank" rel="noreferrer">Health do modulo</a>
+          <a class="link-chip" href="/docs/como-usar-consumidor.html" target="_blank" rel="noreferrer">Guia HTML</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="help-panel" id="helpPanel">
+    <div class="help-columns">
+      <article class="help-card">
+        <strong>Como testar</strong>
+        <ol>
+          <li>Garanta que o `integraLab-api` esteja online e que o vinculo tenha webhook apontando para esta URL publica.</li>
+          <li>Configure no consumidor `LAB_APOIO_VINCULO_ID`, `LAB_APOIO_AUTH_SECRET` e `LAB_APOIO_WEBHOOK_SECRET`.</li>
+          <li>Deixe `AUTO_PROCESS_WEBHOOK=true` para fluxo automatico ou use `POST /api/lab-apoio/v1/consumer/processar-pendentes` para disparo manual.</li>
+          <li>Abra esta pagina e filtre pelo tenant para acompanhar cada item processado.</li>
+        </ol>
+      </article>
+      <article class="help-card">
+        <strong>O que precisa existir no Macro</strong>
+        <ul>
+          <li>Laboratorio de apoio ativo em `lab_apoio`, com `lab_uuid` consistente com a conta/vinculo.</li>
+          <li>Relacionamentos ativos em `lab_apoio_unidade` e `lab_apoio_unidade_exame` para os codigos de exame que o QA quer exercitar.</li>
+          <li>Itens pendentes em `agendaexameitens` com `liberado <> 'SIM'`, permitindo a API listar as pendencias.</li>
+          <li>Na API, variaveis do Macro configuradas para PDF: `LAB_APOIO_MACRO_PRF_ID`, `LAB_APOIO_MACRO_SERV_ID` e `LAB_APOIO_MACRO_FORNEC_ID`.</li>
+        </ul>
+      </article>
+      <article class="help-card">
+        <strong>Consultas SQL de validacao</strong>
+        <pre>SELECT id, descricao, lab_uuid, status
+FROM lab_apoio
+WHERE lab_uuid IS NOT NULL;
+
+SELECT codexame, eh_ativo
+FROM lab_apoio_unidade_exame
+WHERE eh_ativo = 1;
+
+SELECT id, codagendaexame, codexame, liberado
+FROM agendaexameitens
+WHERE COALESCE(liberado, 'NAO') <> 'SIM'
+ORDER BY id DESC;</pre>
+      </article>
+      <article class="help-card">
+        <strong>Endpoints disponiveis</strong>
+        <ul>
+          <li><code>GET /health</code>: health geral do servidor.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/health</code>: health do modulo consumidor.</li>
+          <li><code>POST /api/lab-apoio/v1/consumer/webhook</code>: recebe webhook da API.</li>
+          <li><code>POST /api/lab-apoio/v1/consumer/processar-pendentes</code>: dispara processamento manual.</li>
+          <li><code>GET /qa</code>: abre esta tela publica de QA.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/qa/overview</code>: resumo com KPIs, tenants, runs e itens.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId</code>: detalhe completo do item processado.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId/arquivos/:kind</code>: baixa ou visualiza <code>entrada</code>, <code>saida</code>, <code>resultado</code>, <code>resposta</code> ou <code>pdf</code>.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/qa/runs/:runId/arquivos/:kind</code>: baixa <code>contexto</code>, <code>webhook</code> ou <code>resumo</code> da execucao.</li>
+          <li><code>DELETE /api/lab-apoio/v1/consumer/qa/storage</code>: limpa SQLite e diretorios locais de QA.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="top-grid">
+    <article class="kpi-card">
+      <div class="kpi-label">Itens processados</div>
+      <div class="kpi-value" id="kpiTotal">0</div>
+    </article>
+    <article class="kpi-card">
+      <div class="kpi-label">Sucesso</div>
+      <div class="kpi-value" id="kpiSuccess">0</div>
+    </article>
+    <article class="kpi-card">
+      <div class="kpi-label">Com erro</div>
+      <div class="kpi-value" id="kpiError">0</div>
+    </article>
+    <article class="kpi-card">
+      <div class="kpi-label">Duplicados</div>
+      <div class="kpi-value" id="kpiDuplicate">0</div>
+    </article>
+  </section>
+
+  <section class="panel filters">
+    <div class="filter-grid">
+      <div class="field">
+        <label for="tenantFilter">Tenant</label>
+        <select id="tenantFilter">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter">
+          <option value="">Todos</option>
+          <option value="SUCESSO">Sucesso</option>
+          <option value="ERRO">Erro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="limitFilter">Quantidade</label>
+        <select id="limitFilter">
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="80" selected>80</option>
+          <option value="120">120</option>
+          <option value="200">200</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="runFilter">RunId</label>
+        <input id="runFilter" type="text" placeholder="Opcional para focar uma execucao">
+      </div>
+    </div>
+    <div>
+      <div class="subtle">Execucoes recentes</div>
+      <div class="runs-strip" id="runsStrip"></div>
+    </div>
+  </section>
+
+  <section class="layout">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Itens processados</h2>
+          <p>Lista publica por tenant, com status, contexto clinico sintetico e acesso aos arquivos gerados.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Status</th>
+            <th>Exame</th>
+            <th>Preview</th>
+            <th>Processado em</th>
+          </tr>
+          </thead>
+          <tbody id="itemsTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="itemsEmpty" hidden>
+        Nenhum item QA encontrado para os filtros atuais.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Detalhe do processamento</h2>
+          <p>Ao selecionar um item, a pagina mostra o que veio da API, o resultado sintetico e o PDF correspondente.</p>
+        </div>
+      </div>
+      <div id="detailContainer" class="empty">
+        Selecione um item na tabela para abrir o detalhe.
+      </div>
+    </section>
+  </section>
+</div>
+
+<script>
+  const apiBase = '/api/lab-apoio/v1/consumer/qa';
+  const state = {
+    overview: null,
+    selectedItemId: null,
+  };
+
+  const elements = {
+    tenantFilter: document.getElementById('tenantFilter'),
+    statusFilter: document.getElementById('statusFilter'),
+    limitFilter: document.getElementById('limitFilter'),
+    runFilter: document.getElementById('runFilter'),
+    runsStrip: document.getElementById('runsStrip'),
+    itemsTableBody: document.getElementById('itemsTableBody'),
+    itemsEmpty: document.getElementById('itemsEmpty'),
+    detailContainer: document.getElementById('detailContainer'),
+    helpPanel: document.getElementById('helpPanel'),
+    helpButton: document.getElementById('helpButton'),
+    refreshButton: document.getElementById('refreshButton'),
+    clearButton: document.getElementById('clearButton'),
+    publicUrl: document.getElementById('publicUrl'),
+    kpiTotal: document.getElementById('kpiTotal'),
+    kpiSuccess: document.getElementById('kpiSuccess'),
+    kpiError: document.getElementById('kpiError'),
+    kpiDuplicate: document.getElementById('kpiDuplicate'),
+  };
+
+  function setPublicUrl() {
+    const current = new URL(window.location.href);
+    current.pathname = '/qa';
+    current.search = '';
+    elements.publicUrl.textContent = current.toString();
+  }
+
+  function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('pt-BR');
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function badgeClass(row) {
+    if (row.status === 'ERRO') return 'badge badge-error';
+    if (row.duplicado) return 'badge badge-warn';
+    return 'badge badge-ok';
+  }
+
+  function badgeLabel(row) {
+    if (row.status === 'ERRO') return 'Erro';
+    if (row.duplicado) return 'Duplicado';
+    return 'Sucesso';
+  }
+
+  function getFilters() {
+    const params = new URLSearchParams();
+    if (elements.tenantFilter.value) params.set('tenantId', elements.tenantFilter.value);
+    if (elements.statusFilter.value) params.set('status', elements.statusFilter.value);
+    if (elements.runFilter.value.trim()) params.set('runId', elements.runFilter.value.trim());
+    if (elements.limitFilter.value) params.set('limit', elements.limitFilter.value);
+    return params;
+  }
+
+  function syncFiltersFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const runId = params.get('runId');
+    if (runId) {
+      elements.runFilter.value = runId;
+    }
+  }
+
+  function persistFiltersToUrl() {
+    const params = getFilters();
+    const nextUrl = new URL(window.location.href);
+    nextUrl.search = params.toString();
+    window.history.replaceState({}, '', nextUrl);
+  }
+
+  async function fetchJson(url, options = {}) {
+    const response = await fetch(url, options);
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Falha na comunicacao com a tela publica de QA.');
+    }
+    return data.data;
+  }
+
+  function renderTenants(overview) {
+    const currentValue = elements.tenantFilter.value;
+    elements.tenantFilter.innerHTML = '<option value="">Todos</option>';
+    for (const tenant of overview.tenants) {
+      const option = document.createElement('option');
+      option.value = tenant.tenantId;
+      option.textContent = tenant.tenantName ? `${tenant.tenantName} (${tenant.tenantId})` : tenant.tenantId;
+      if (tenant.tenantId === currentValue) {
+        option.selected = true;
+      }
+      elements.tenantFilter.appendChild(option);
+    }
+  }
+
+  function renderRuns(overview) {
+    elements.runsStrip.innerHTML = '';
+    if (!overview.runs.length) {
+      elements.runsStrip.innerHTML = '<span class="subtle">Nenhuma execucao registrada ainda.</span>';
+      return;
+    }
+
+    for (const run of overview.runs) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `run-chip${elements.runFilter.value === run.id ? ' active' : ''}`;
+      button.textContent = `${run.triggerEvent} | ${run.tenantName || run.tenantId} | ${formatDate(run.createdAt)}`;
+      button.addEventListener('click', () => {
+        elements.runFilter.value = elements.runFilter.value === run.id ? '' : run.id;
+        loadOverview();
+      });
+      elements.runsStrip.appendChild(button);
+    }
+  }
+
+  function renderKpis(overview) {
+    elements.kpiTotal.textContent = String(overview.summary.totalItems);
+    elements.kpiSuccess.textContent = String(overview.summary.successCount);
+    elements.kpiError.textContent = String(overview.summary.errorCount);
+    elements.kpiDuplicate.textContent = String(overview.summary.duplicateCount);
+  }
+
+  function renderTable(overview) {
+    elements.itemsTableBody.innerHTML = '';
+    const rows = overview.rows || [];
+    elements.itemsEmpty.hidden = rows.length > 0;
+
+    for (const row of rows) {
+      const tr = document.createElement('tr');
+      if (row.id === state.selectedItemId) {
+        tr.classList.add('active');
+      }
+      tr.innerHTML = `
+        <td>
+          <strong>${escapeHtml(row.tenantName || row.tenantId)}</strong><br>
+          <span class="subtle">${escapeHtml(row.tenantId)}</span>
+        </td>
+        <td><span class="${badgeClass(row)}">${badgeLabel(row)}</span></td>
+        <td>
+          <strong>${escapeHtml(row.descricaoExame || `Exame ${row.codexame}`)}</strong><br>
+          <span class="subtle">agenda ${row.agendaExameId} / item ${row.agendaExameItemId} / cod ${row.codexame}</span>
+        </td>
+        <td>${escapeHtml(row.resultPreview || row.erro || '-')}</td>
+        <td>${escapeHtml(formatDate(row.processedAt))}</td>
+      `;
+      tr.addEventListener('click', () => selectItem(row.id));
+      elements.itemsTableBody.appendChild(tr);
+    }
+  }
+
+  function renderDetailMeta(detail) {
+    return `
+      <div class="detail-meta">
+        <div class="meta-item"><span>Tenant</span>${escapeHtml(detail.tenantName || detail.tenantId)}</div>
+        <div class="meta-item"><span>RunId</span>${escapeHtml(detail.runId)}</div>
+        <div class="meta-item"><span>Evento</span>${escapeHtml(detail.run.triggerEvent)}</div>
+        <div class="meta-item"><span>Vinculo</span>${escapeHtml(detail.vinculoId || '-')}</div>
+        <div class="meta-item"><span>AgendaExameId</span>${detail.agendaExameId}</div>
+        <div class="meta-item"><span>AgendaExameItemId</span>${detail.agendaExameItemId}</div>
+        <div class="meta-item"><span>CodExame</span>${detail.codexame}</div>
+        <div class="meta-item"><span>Processado em</span>${escapeHtml(formatDate(detail.processedAt))}</div>
+      </div>
+    `;
+  }
+
+  function renderFileLinks(detail) {
+    const links = [];
+    if (detail.files.entrada) links.push(`<a class="link-chip" href="${detail.files.entrada}" target="_blank" rel="noreferrer">Entrada TXT</a>`);
+    if (detail.files.saida) links.push(`<a class="link-chip" href="${detail.files.saida}" target="_blank" rel="noreferrer">Saida TXT</a>`);
+    if (detail.files.resultado) links.push(`<a class="link-chip" href="${detail.files.resultado}" target="_blank" rel="noreferrer">Resultado JSON</a>`);
+    if (detail.files.resposta) links.push(`<a class="link-chip" href="${detail.files.resposta}" target="_blank" rel="noreferrer">Resposta API</a>`);
+    if (detail.files.pdf) links.push(`<a class="link-chip" href="${detail.files.pdf}" target="_blank" rel="noreferrer">Abrir PDF</a>`);
+    if (detail.run.files.context) links.push(`<a class="link-chip" href="${detail.run.files.context}" target="_blank" rel="noreferrer">Contexto run</a>`);
+    if (detail.run.files.webhook) links.push(`<a class="link-chip" href="${detail.run.files.webhook}" target="_blank" rel="noreferrer">Webhook TXT</a>`);
+    if (detail.run.files.summary) links.push(`<a class="link-chip" href="${detail.run.files.summary}" target="_blank" rel="noreferrer">Resumo run</a>`);
+    return links.join('');
+  }
+
+  function pretty(value) {
+    return JSON.stringify(value ?? null, null, 2);
+  }
+
+  function renderDetail(detail) {
+    const pdfBlock = detail.files.pdf
+      ? `<iframe class="pdf-frame" src="${detail.files.pdf}"></iframe>`
+      : '<div class="empty">Nenhum PDF local gerado para este item.</div>';
+
+    elements.detailContainer.className = 'detail-grid';
+    elements.detailContainer.innerHTML = `
+      <article class="detail-card">
+        <div class="panel-head">
+          <div>
+            <h3>${escapeHtml(detail.descricaoExame || `Exame ${detail.codexame}`)}</h3>
+            <p>${escapeHtml(detail.resultPreview || detail.erro || '-')}</p>
+          </div>
+          <span class="${badgeClass(detail)}">${badgeLabel(detail)}</span>
+        </div>
+        ${renderDetailMeta(detail)}
+        <div class="row-actions">
+          ${renderFileLinks(detail)}
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <h3>Dados recebidos da API</h3>
+        <div class="json-grid">
+          <div>
+            <p class="subtle">Pendencia listada</p>
+            <pre>${escapeHtml(pretty(detail.pendingExam))}</pre>
+          </div>
+          <div>
+            <p class="subtle">Detalhe do exame</p>
+            <pre>${escapeHtml(pretty(detail.examDetail))}</pre>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <h3>Resultado sintetico gerado</h3>
+        <div class="json-grid">
+          <div>
+            <p class="subtle">Payload de resultado</p>
+            <pre>${escapeHtml(pretty(detail.generatedResult))}</pre>
+          </div>
+          <div>
+            <p class="subtle">Payload enviado / resposta da API</p>
+            <pre>${escapeHtml(pretty({ enviado: detail.sendPayload, resposta: detail.apiResponse }))}</pre>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <h3>Webhook e resumo da execucao</h3>
+        <div class="json-grid">
+          <div>
+            <p class="subtle">Webhook validado</p>
+            <pre>${escapeHtml(pretty({ headers: detail.run.webhookHeaders, payload: detail.run.webhookPayload, rawBody: detail.run.webhookRawBody }))}</pre>
+          </div>
+          <div>
+            <p class="subtle">Resumo da run</p>
+            <pre>${escapeHtml(pretty(detail.run.summary))}</pre>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <h3>Preview do PDF</h3>
+        ${pdfBlock}
+      </article>
+    `;
+  }
+
+  async function selectItem(itemId) {
+    state.selectedItemId = itemId;
+    renderTable(state.overview);
+    const detail = await fetchJson(`${apiBase}/itens/${itemId}`);
+    renderDetail(detail);
+  }
+
+  async function loadOverview() {
+    persistFiltersToUrl();
+    const query = getFilters().toString();
+    const overview = await fetchJson(`${apiBase}/overview${query ? `?${query}` : ''}`);
+    state.overview = overview;
+
+    renderTenants(overview);
+    renderRuns(overview);
+    renderKpis(overview);
+    renderTable(overview);
+
+    const rows = overview.rows || [];
+    if (!rows.length) {
+      state.selectedItemId = null;
+      elements.detailContainer.className = 'empty';
+      elements.detailContainer.textContent = 'Nenhum item QA encontrado para os filtros atuais.';
+      return;
+    }
+
+    const selectedStillExists = rows.some(row => row.id === state.selectedItemId);
+    if (!selectedStillExists) {
+      state.selectedItemId = rows[0].id;
+    }
+    await selectItem(state.selectedItemId);
+  }
+
+  async function clearStorage() {
+    const confirmed = window.confirm('Isto vai apagar todos os arquivos e registros QA gerados localmente. Deseja continuar?');
+    if (!confirmed) return;
+
+    elements.clearButton.disabled = true;
+    try {
+      await fetchJson(`${apiBase}/storage`, { method: 'DELETE' });
+      elements.runFilter.value = '';
+      await loadOverview();
+    } finally {
+      elements.clearButton.disabled = false;
+    }
+  }
+
+  function bindEvents() {
+    elements.helpButton.addEventListener('click', () => {
+      elements.helpPanel.classList.toggle('open');
+    });
+
+    elements.refreshButton.addEventListener('click', () => {
+      loadOverview().catch(showError);
+    });
+
+    elements.clearButton.addEventListener('click', () => {
+      clearStorage().catch(showError);
+    });
+
+    for (const element of [elements.tenantFilter, elements.statusFilter, elements.limitFilter]) {
+      element.addEventListener('change', () => {
+        loadOverview().catch(showError);
+      });
+    }
+
+    elements.runFilter.addEventListener('change', () => {
+      loadOverview().catch(showError);
+    });
+  }
+
+  function showError(error) {
+    console.error(error);
+    elements.detailContainer.className = 'empty';
+    elements.detailContainer.textContent = error.message || 'Falha ao carregar a tela publica de QA.';
+  }
+
+  async function bootstrap() {
+    setPublicUrl();
+    syncFiltersFromUrl();
+    bindEvents();
+    await loadOverview();
+  }
+
+  bootstrap().catch(showError);
+</script>
+</body>
+</html>

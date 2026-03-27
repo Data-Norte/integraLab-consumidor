@@ -3,10 +3,19 @@ import './config/env.js';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import env from './config/env.js';
 import labApoioConsumerRoutes from './modules/labApoio/controllers/labApoio.consumer.routes.js';
+import labApoioQaRoutes from './modules/labApoio/controllers/labApoio.qa.routes.js';
 import { logEvent } from './shared/logging/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..');
+const docsDir = path.join(projectRoot, 'docs');
+const qaPagePath = path.join(docsDir, 'public-qa-dashboard.html');
 
 const app = express();
 
@@ -30,9 +39,17 @@ app.use(express.json({
 }));
 
 app.use('/api/lab-apoio/v1/consumer', labApoioConsumerRoutes);
+app.use('/api/lab-apoio/v1/consumer/qa', labApoioQaRoutes);
+app.use('/docs', express.static(docsDir, {
+  extensions: ['html'],
+}));
 
 app.get('/', (_req: Request, res: Response) => {
-  res.send('IntegraLab consumer is running!');
+  res.redirect('/qa');
+});
+
+app.get('/qa', (_req: Request, res: Response) => {
+  res.sendFile(qaPagePath);
 });
 
 app.get('/health', (_req: Request, res: Response) => {

@@ -67,6 +67,20 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
           rows: [],
         };
       },
+      getPendingExamDetail: async ({ agendaExameId }) => ({
+        agendaExameId,
+        itens: [
+          {
+            agendaExameItemId: agendaExameId === 100 ? 200 : 201,
+            codexame: agendaExameId === 100 ? 300 : 301,
+            descricaoExame: agendaExameId === 100 ? 'Hemoglobina' : 'Glicemia',
+            status: 'PENDENTE',
+            dataAgenda: '2026-03-18T10:00:00.000Z',
+            pacienteId: 1,
+            medicoId: 10,
+          },
+        ],
+      }),
       sendResultado: async ({ payload }) => {
         sentPayloads.push(payload);
         return {
@@ -125,6 +139,20 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
           },
         ],
       }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 100,
+        itens: [
+          {
+            agendaExameItemId: 200,
+            codexame: 300,
+            descricaoExame: 'Hemoglobina',
+            status: 'PENDENTE',
+            dataAgenda: '2026-03-18T10:00:00.000Z',
+            pacienteId: 1,
+            medicoId: 10,
+          },
+        ],
+      }),
       sendResultado: async ({ payload }) => {
         sentPayloads.push(payload);
         return {
@@ -171,6 +199,20 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
             status: 'PENDENTE',
             dataAgenda: '2026-03-18T10:00:00.000Z',
             pacienteId: 1,
+          },
+        ],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 100,
+        itens: [
+          {
+            agendaExameItemId: 200,
+            codexame: 300,
+            descricaoExame: 'Hemoglobina',
+            status: 'PENDENTE',
+            dataAgenda: '2026-03-18T10:00:00.000Z',
+            pacienteId: 1,
+            medicoId: 10,
           },
         ],
       }),

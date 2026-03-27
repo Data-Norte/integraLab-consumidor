@@ -5,9 +5,11 @@ import { ZodError } from 'zod';
 import {
   buildApiSuccessSchema,
   integrationTokenDataSchema,
+  pendingExamDetailDataSchema,
   pendingExamsDataSchema,
   resultadoRecebidoSchema,
   type IntegrationTokenData,
+  type PendingExamDetail,
   type PendingExamsData,
   type ResultadoRecebido,
 } from './labApoio.schemas.js';
@@ -37,6 +39,11 @@ export type LabApoioApiClientLike = {
     page?: number;
     limit?: number;
   }): Promise<PendingExamsData>;
+  getPendingExamDetail(params: {
+    token: string;
+    tenantId: string;
+    agendaExameId: number;
+  }): Promise<PendingExamDetail>;
   sendResultado(params: {
     token: string;
     tenantId: string;
@@ -105,6 +112,29 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
       return payload.data;
     } catch (error) {
       throw this.normalizeError(error, 'Falha ao consultar exames pendentes');
+    }
+  }
+
+  async getPendingExamDetail(params: {
+    token: string;
+    tenantId: string;
+    agendaExameId: number;
+  }) {
+    try {
+      const response = await this.http.get(
+        `/api/lab-apoio/v1/integracao/exames/${params.agendaExameId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${params.token}`,
+            'x-tenant-id': params.tenantId,
+          },
+        }
+      );
+
+      const payload = buildApiSuccessSchema(pendingExamDetailDataSchema).parse(response.data);
+      return payload.data;
+    } catch (error) {
+      throw this.normalizeError(error, 'Falha ao consultar detalhe do exame pendente');
     }
   }
 
