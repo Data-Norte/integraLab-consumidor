@@ -8,16 +8,34 @@ export function buildApiSuccessSchema<T extends z.ZodTypeAny>(dataSchema: T) {
   });
 }
 
+export const labOperationEnvSchema = z.enum(['hml', 'prd']);
+
 export const integrationTokenDataSchema = z.object({
   token: z.string().min(1),
-  ambiente: z.string().min(1),
+  ambiente: labOperationEnvSchema.optional(),
+  operationEnv: labOperationEnvSchema.optional(),
   vinculoId: z.string().min(1),
   tenantId: z.string().min(1),
   clienteId: z.string().min(1),
   labUuid: z.string().min(1),
   expiresIn: z.string().min(1),
   scope: z.literal('integracao').optional(),
-}).passthrough();
+}).passthrough().superRefine((data, ctx) => {
+  if (!data.ambiente && !data.operationEnv) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Resposta do token sem ambiente operacional.',
+      path: ['operationEnv'],
+    });
+  }
+}).transform(data => {
+  const operationEnv = data.operationEnv ?? data.ambiente!;
+  return {
+    ...data,
+    ambiente: data.ambiente ?? operationEnv,
+    operationEnv,
+  };
+});
 
 export const pendingExamSchema = z.object({
   agendaExameItemId: z.number().int().positive(),

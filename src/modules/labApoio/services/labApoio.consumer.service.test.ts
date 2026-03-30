@@ -5,6 +5,7 @@ import { processPendingExams } from './labApoio.consumer.service.js';
 
 test('processPendingExams consome pendencias e envia resultado inline com pdf', async () => {
   const sentPayloads: any[] = [];
+  let capturedTokenRequest: any = null;
   let listCalls = 0;
 
   const result = await processPendingExams({
@@ -20,16 +21,20 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
     maxBatches: 3,
     now: () => new Date('2026-03-18T12:00:00.000Z'),
     apiClient: {
-      issueIntegrationToken: async () => ({
-        token: 'jwt-integracao',
-        ambiente: 'hml',
-        vinculoId: 'vinculo-001',
-        tenantId: 'tenant-001',
-        clienteId: 'tenant-001',
-        labUuid: 'lab-uuid-1',
-        expiresIn: '15m',
-        scope: 'integracao',
-      }),
+      issueIntegrationToken: async params => {
+        capturedTokenRequest = params;
+        return {
+          token: 'jwt-integracao',
+          ambiente: 'prd',
+          operationEnv: 'prd',
+          vinculoId: 'vinculo-001',
+          tenantId: 'tenant-001',
+          clienteId: 'tenant-001',
+          labUuid: 'lab-uuid-1',
+          expiresIn: '15m',
+          scope: 'integracao',
+        };
+      },
       listPendingExams: async () => {
         listCalls += 1;
         if (listCalls === 1) {
@@ -94,6 +99,11 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
   assert.equal(result.successCount, 2);
   assert.equal(result.errorCount, 0);
   assert.equal(result.completionReason, 'SEM_PENDENCIAS');
+  assert.deepEqual(capturedTokenRequest, {
+    vinculoId: 'vinculo-001',
+    segredo: 'segredo-123456789',
+  });
+  assert.equal(result.ambiente, 'prd');
   assert.equal(sentPayloads.length, 2);
   assert.equal(sentPayloads[0].idempotencyKey, 'resultado-100-200');
   assert.equal(sentPayloads[0].pdf.idempotencyKey, 'pdf-100-200');
@@ -117,6 +127,7 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
       issueIntegrationToken: async () => ({
         token: 'jwt-integracao',
         ambiente: 'hml',
+        operationEnv: 'hml',
         vinculoId: 'vinculo-001',
         tenantId: 'tenant-001',
         clienteId: 'tenant-001',
@@ -180,6 +191,7 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
       issueIntegrationToken: async () => ({
         token: 'jwt-integracao',
         ambiente: 'hml',
+        operationEnv: 'hml',
         vinculoId: 'vinculo-001',
         tenantId: 'tenant-001',
         clienteId: 'tenant-001',

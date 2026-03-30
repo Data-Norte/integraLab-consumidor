@@ -156,6 +156,7 @@ export async function processPendingExams(
     vinculoId: services.vinculoId,
     segredo: services.authSecret,
   });
+  const operationEnv = token.operationEnv ?? token.ambiente;
 
   const run = services.qaStorage.createRun({
     tenantId: params.tenantId,
@@ -255,7 +256,7 @@ export async function processPendingExams(
           tenantId: params.tenantId,
           tenantName: params.tenantName ?? null,
           vinculoId: services.vinculoId,
-          ambiente: token.ambiente,
+          ambiente: operationEnv,
           agendaExameId: exam.agendaExameId,
           agendaExameItemId: exam.agendaExameItemId,
           codexame: exam.codexame,
@@ -299,7 +300,7 @@ export async function processPendingExams(
           tenantId: params.tenantId,
           tenantName: params.tenantName ?? null,
           vinculoId: services.vinculoId,
-          ambiente: token.ambiente,
+          ambiente: operationEnv,
           agendaExameId: exam.agendaExameId,
           agendaExameItemId: exam.agendaExameItemId,
           codexame: exam.codexame,
@@ -356,7 +357,7 @@ export async function processPendingExams(
     qaUrl: `${withPublicBasePath('/qa')}?runId=${run.id}`,
     tenantId: params.tenantId,
     tenantName: params.tenantName ?? null,
-    ambiente: token.ambiente,
+    ambiente: operationEnv,
     vinculoId: token.vinculoId,
     triggerEvent: params.triggerEvent ?? 'MANUAL',
     triggerEventId: params.triggerEventId ?? null,

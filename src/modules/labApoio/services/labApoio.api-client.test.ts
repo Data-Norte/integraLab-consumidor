@@ -43,6 +43,7 @@ test('LabApoioApiClient envia credenciais de integracao para a API', async () =>
         data: {
           token: 'jwt',
           ambiente: 'hml',
+          operationEnv: 'hml',
           vinculoId: 'vinculo-001',
           tenantId: 'tenant-001',
           clienteId: 'tenant-001',
@@ -58,12 +59,13 @@ test('LabApoioApiClient envia credenciais de integracao para a API', async () =>
       timeoutMs: 3000,
     });
 
-    const token = await client.issueIntegrationToken({
-      vinculoId: 'vinculo-001',
-      segredo: 'segredo-abc',
-    });
+      const token = await client.issueIntegrationToken({
+        vinculoId: 'vinculo-001',
+        segredo: 'segredo-abc',
+      });
 
-    assert.equal(token.token, 'jwt');
+      assert.equal(token.token, 'jwt');
+      assert.equal(token.operationEnv, 'hml');
   });
 });
 

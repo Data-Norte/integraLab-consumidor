@@ -82,7 +82,7 @@ if (env.PUBLIC_BASE_PATH) {
 const server = app.listen(env.PORT, () => {
   logEvent('info', 'server_started', {
     port: env.PORT,
-    ambiente: env.APP_ENV,
+    nodeEnv: env.NODE_ENV,
     apiBaseUrl: env.INTEGRALAB_API_BASE_URL,
     publicBasePath: env.PUBLIC_BASE_PATH,
   });

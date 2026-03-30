@@ -32,6 +32,7 @@ export type LabApoioApiClientLike = {
   issueIntegrationToken(params: {
     vinculoId: string;
     segredo: string;
+    ambienteOperacao?: 'hml' | 'prd';
   }): Promise<IntegrationTokenData>;
   listPendingExams(params: {
     token: string;
@@ -70,6 +71,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   async issueIntegrationToken(params: {
     vinculoId: string;
     segredo: string;
+    ambienteOperacao?: 'hml' | 'prd';
   }) {
     try {
       const response = await this.http.post(
@@ -77,6 +79,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
         {
           vinculoId: params.vinculoId,
           segredo: params.segredo,
+          ambienteOperacao: params.ambienteOperacao,
         }
       );
 
