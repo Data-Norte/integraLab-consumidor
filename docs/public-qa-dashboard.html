@@ -215,27 +215,6 @@
       color: var(--text);
     }
 
-    .runs-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-content: start;
-    }
-
-    .run-chip {
-      border: 1px solid rgba(13, 93, 99, 0.18);
-      background: rgba(13, 93, 99, 0.07);
-      color: var(--accent);
-      border-radius: 999px;
-      padding: 8px 12px;
-      cursor: pointer;
-    }
-
-    .run-chip.active {
-      background: var(--accent);
-      color: #f5f9fa;
-    }
-
     button {
       border: 0;
       border-radius: 16px;
@@ -669,10 +648,6 @@ ORDER BY id DESC;</pre>
         <input id="runFilter" type="text" placeholder="Opcional para focar uma execucao">
       </div>
     </div>
-    <div>
-      <div class="subtle">Execucoes recentes</div>
-      <div class="runs-strip" id="runsStrip"></div>
-    </div>
   </section>
 
   <section class="layout">
@@ -742,7 +717,6 @@ ORDER BY id DESC;</pre>
     statusFilter: document.getElementById('statusFilter'),
     limitFilter: document.getElementById('limitFilter'),
     runFilter: document.getElementById('runFilter'),
-    runsStrip: document.getElementById('runsStrip'),
     itemsTableBody: document.getElementById('itemsTableBody'),
     itemsEmpty: document.getElementById('itemsEmpty'),
     detailContainer: document.getElementById('detailContainer'),
@@ -858,26 +832,6 @@ ORDER BY id DESC;</pre>
         option.selected = true;
       }
       elements.tenantFilter.appendChild(option);
-    }
-  }
-
-  function renderRuns(overview) {
-    elements.runsStrip.innerHTML = '';
-    if (!overview.runs.length) {
-      elements.runsStrip.innerHTML = '<span class="subtle">Nenhuma execucao registrada ainda.</span>';
-      return;
-    }
-
-    for (const run of overview.runs) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `run-chip${elements.runFilter.value === run.id ? ' active' : ''}`;
-      button.textContent = `${run.triggerEvent} | ${run.tenantName || run.tenantId} | ${formatDate(run.createdAt)}`;
-      button.addEventListener('click', () => {
-        elements.runFilter.value = elements.runFilter.value === run.id ? '' : run.id;
-        loadOverview();
-      });
-      elements.runsStrip.appendChild(button);
     }
   }
 
@@ -1032,7 +986,6 @@ ORDER BY id DESC;</pre>
     state.overview = overview;
 
     renderTenants(overview);
-    renderRuns(overview);
     renderKpis(overview);
     renderTable(overview);
 
