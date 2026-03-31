@@ -80,6 +80,24 @@ export const manualSyncRequestSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional(),
 });
 
+export const qaHmlBatchDataSchema = z.object({
+  vinculoId: z.string().min(1),
+  tenantId: z.string().min(1),
+  tenantNome: z.string().min(1),
+  ambiente: z.literal('hml'),
+  operationEnv: z.literal('hml'),
+  pendingBefore: z.number().int().nonnegative(),
+  cleanedAgendaExameIds: z.array(z.number().int().positive()),
+  generatedCount: z.number().int().nonnegative(),
+  rows: z.array(z.object({
+    agendaExameId: z.number().int().positive(),
+    agendaExameItemId: z.number().int().positive(),
+    codexame: z.number().int().positive(),
+    descricaoExame: z.string().min(1),
+  })),
+  createdAt: z.string().min(1),
+}).passthrough();
+
 export const pendingExamsWebhookPayloadSchema = z.object({
   event: z.literal('LAB_APOIO_EXAMES_DISPONIVEIS'),
   eventId: z.string().min(1),
@@ -143,4 +161,5 @@ export type PendingExam = z.infer<typeof pendingExamSchema>;
 export type PendingExamsData = z.infer<typeof pendingExamsDataSchema>;
 export type PendingExamDetail = z.infer<typeof pendingExamDetailDataSchema>;
 export type ResultadoRecebido = z.infer<typeof resultadoRecebidoSchema>;
+export type QaHmlBatchData = z.infer<typeof qaHmlBatchDataSchema>;
 export type LabApoioWebhookPayload = z.infer<typeof labApoioWebhookPayloadSchema>;

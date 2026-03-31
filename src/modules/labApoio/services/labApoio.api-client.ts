@@ -7,10 +7,12 @@ import {
   integrationTokenDataSchema,
   pendingExamDetailDataSchema,
   pendingExamsDataSchema,
+  qaHmlBatchDataSchema,
   resultadoRecebidoSchema,
   type IntegrationTokenData,
   type PendingExamDetail,
   type PendingExamsData,
+  type QaHmlBatchData,
   type ResultadoRecebido,
 } from './labApoio.schemas.js';
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
@@ -51,6 +53,9 @@ export type LabApoioApiClientLike = {
     agendaExameId: number;
     payload: SendResultadoPayload;
   }): Promise<ResultadoRecebido>;
+  generateQaHmlBatch?(params: {
+    token: string;
+  }): Promise<QaHmlBatchData>;
 };
 
 function resolveErrorMessage(data: unknown, fallback: string) {
@@ -163,6 +168,27 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
       return payload.data;
     } catch (error) {
       throw this.normalizeError(error, 'Falha ao enviar resultado do exame');
+    }
+  }
+
+  async generateQaHmlBatch(params: {
+    token: string;
+  }) {
+    try {
+      const response = await this.http.post(
+        '/api/lab-apoio/v1/integracao/qa/hml/agendamentos',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${params.token}`,
+          },
+        }
+      );
+
+      const payload = buildApiSuccessSchema(qaHmlBatchDataSchema).parse(response.data);
+      return payload.data;
+    } catch (error) {
+      throw this.normalizeError(error, 'Falha ao gerar agendamentos QA em homologacao');
     }
   }
 

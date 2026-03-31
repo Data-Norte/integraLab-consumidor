@@ -31,7 +31,13 @@ if (env.ALLOW_ORIGINS.length > 0) {
   app.use(cors({ origin: false }));
 }
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
 app.use(express.json({
   limit: '2mb',
   verify: (req, _res, buffer) => {

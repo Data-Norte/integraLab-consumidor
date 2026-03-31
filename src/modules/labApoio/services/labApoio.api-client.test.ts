@@ -151,6 +151,50 @@ test('LabApoioApiClient consulta o detalhe do exame pendente', async () => {
   });
 });
 
+test('LabApoioApiClient gera lote QA HML com bearer token', async () => {
+  await withHttpServer((req, res) => {
+    assert.equal(req.method, 'POST');
+    assert.equal(req.url, '/api/lab-apoio/v1/integracao/qa/hml/agendamentos');
+    assert.equal(req.headers.authorization, 'Bearer jwt');
+
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        vinculoId: 'vinculo-001',
+        tenantId: 'tenant-001',
+        tenantNome: 'Tenant QA',
+        ambiente: 'hml',
+        operationEnv: 'hml',
+        pendingBefore: 0,
+        cleanedAgendaExameIds: [],
+        generatedCount: 5,
+        rows: [
+          {
+            agendaExameId: 100,
+            agendaExameItemId: 200,
+            codexame: 300,
+            descricaoExame: 'Hemoglobina [QA HML 01]',
+          },
+        ],
+        createdAt: new Date().toISOString(),
+      },
+    }));
+  }, async baseUrl => {
+    const client = new LabApoioApiClient({
+      baseUrl,
+      timeoutMs: 3000,
+    });
+
+    const batch = await client.generateQaHmlBatch({
+      token: 'jwt',
+    });
+
+    assert.equal(batch.operationEnv, 'hml');
+    assert.equal(batch.generatedCount, 5);
+  });
+});
+
 test('LabApoioApiClient converte erro upstream em LabApoioConsumerError', async () => {
   await withHttpServer((_req, res) => {
     res.statusCode = 401;

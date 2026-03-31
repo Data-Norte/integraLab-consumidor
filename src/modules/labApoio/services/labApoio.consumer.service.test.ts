@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 
 import { processPendingExams } from './labApoio.consumer.service.js';
 
+function createQaStorageStub() {
+  let itemSequence = 0;
+  return {
+    createRun: () => ({ id: 'run-qa' }),
+    finishRun: () => undefined,
+    recordItem: () => ({ id: `qa-item-${++itemSequence}` }),
+  };
+}
+
 test('processPendingExams consome pendencias e envia resultado inline com pdf', async () => {
   const sentPayloads: any[] = [];
   let capturedTokenRequest: any = null;
@@ -20,6 +29,7 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
     processingDelayMs: 0,
     maxBatches: 3,
     now: () => new Date('2026-03-18T12:00:00.000Z'),
+    qaStorage: createQaStorageStub(),
     apiClient: {
       issueIntegrationToken: async params => {
         capturedTokenRequest = params;
@@ -123,6 +133,7 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
     sendInlinePdf: false,
     processingDelayMs: 0,
     maxBatches: 1,
+    qaStorage: createQaStorageStub(),
     apiClient: {
       issueIntegrationToken: async () => ({
         token: 'jwt-integracao',
@@ -187,6 +198,7 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
     authSecret: 'segredo-123456789',
     processingDelayMs: 0,
     maxBatches: 3,
+    qaStorage: createQaStorageStub(),
     apiClient: {
       issueIntegrationToken: async () => ({
         token: 'jwt-integracao',

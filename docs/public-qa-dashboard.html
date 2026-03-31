@@ -255,6 +255,11 @@
       border: 1px solid #decdb8;
     }
 
+    .btn-accent {
+      background: linear-gradient(135deg, #d99336, #c66f20);
+      color: #fff9f1;
+    }
+
     .btn-danger {
       background: linear-gradient(135deg, var(--error), #b24a4a);
       color: #fff6f6;
@@ -438,6 +443,21 @@
       gap: 14px;
     }
 
+    .action-feedback {
+      margin-top: 14px;
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .action-feedback.is-error {
+      color: var(--error);
+    }
+
+    .action-feedback.is-success {
+      color: var(--accent-strong);
+    }
+
     .help-columns {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -516,9 +536,12 @@
       </p>
       <div class="hero-actions">
         <button class="btn-primary" id="refreshButton" type="button">Atualizar agora</button>
+        <button class="btn-accent" id="generateButton" type="button">Gerar 5 agendamentos HML</button>
+        <button class="btn-secondary" id="processButton" type="button">Processar pendencias</button>
         <button class="btn-secondary" id="helpButton" type="button">Ajuda / Como testar</button>
         <button class="btn-danger" id="clearButton" type="button">Limpar diretorios</button>
       </div>
+      <div class="action-feedback" id="actionFeedback">Use os atalhos acima para gerar um novo lote QA ou processar os exames pendentes do HML.</div>
     </div>
     <div class="hero-side">
       <div class="note-card">
@@ -729,7 +752,10 @@ ORDER BY id DESC;</pre>
     moduleHealthLink: document.getElementById('moduleHealthLink'),
     guideLink: document.getElementById('guideLink'),
     refreshButton: document.getElementById('refreshButton'),
+    generateButton: document.getElementById('generateButton'),
+    processButton: document.getElementById('processButton'),
     clearButton: document.getElementById('clearButton'),
+    actionFeedback: document.getElementById('actionFeedback'),
     publicUrl: document.getElementById('publicUrl'),
     kpiTotal: document.getElementById('kpiTotal'),
     kpiSuccess: document.getElementById('kpiSuccess'),
@@ -809,6 +835,16 @@ ORDER BY id DESC;</pre>
       throw new Error(data.message || 'Falha na comunicacao com a tela publica de QA.');
     }
     return data.data;
+  }
+
+  function setActionFeedback(message, tone = 'default') {
+    elements.actionFeedback.textContent = message;
+    elements.actionFeedback.className = 'action-feedback';
+    if (tone === 'error') {
+      elements.actionFeedback.classList.add('is-error');
+    } else if (tone === 'success') {
+      elements.actionFeedback.classList.add('is-success');
+    }
   }
 
   function renderTenants(overview) {
@@ -1029,6 +1065,42 @@ ORDER BY id DESC;</pre>
     }
   }
 
+  async function processPending() {
+    elements.processButton.disabled = true;
+    setActionFeedback('Processando pendencias atuais do HML...', 'default');
+    try {
+      const result = await fetchJson(`${apiBase}/acoes/processar-pendentes`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      setActionFeedback(`Processamento concluido: ${result.successCount} sucesso(s), ${result.errorCount} erro(s), ${result.duplicateCount} duplicado(s).`, 'success');
+      await loadOverview();
+    } finally {
+      elements.processButton.disabled = false;
+    }
+  }
+
+  async function generateHmlBatch() {
+    elements.generateButton.disabled = true;
+    setActionFeedback('Gerando 5 novos agendamentos de homologacao...', 'default');
+    try {
+      const result = await fetchJson(`${apiBase}/acoes/gerar-agendamentos-hml`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      setActionFeedback(`Lote gerado com ${result.generatedCount} agendamento(s). ${result.cleanedAgendaExameIds.length} agenda(s) QA antiga(s) foram removidas antes da insercao.`, 'success');
+      await loadOverview();
+    } finally {
+      elements.generateButton.disabled = false;
+    }
+  }
+
   function bindEvents() {
     elements.helpButton.addEventListener('click', () => {
       elements.helpPanel.classList.toggle('open');
@@ -1036,6 +1108,14 @@ ORDER BY id DESC;</pre>
 
     elements.refreshButton.addEventListener('click', () => {
       loadOverview().catch(showError);
+    });
+
+    elements.generateButton.addEventListener('click', () => {
+      generateHmlBatch().catch(showError);
+    });
+
+    elements.processButton.addEventListener('click', () => {
+      processPending().catch(showError);
     });
 
     elements.clearButton.addEventListener('click', () => {
@@ -1055,6 +1135,7 @@ ORDER BY id DESC;</pre>
 
   function showError(error) {
     console.error(error);
+    setActionFeedback(error.message || 'Falha ao executar a acao solicitada.', 'error');
     elements.detailContainer.className = 'empty';
     elements.detailContainer.textContent = error.message || 'Falha ao carregar a tela publica de QA.';
   }

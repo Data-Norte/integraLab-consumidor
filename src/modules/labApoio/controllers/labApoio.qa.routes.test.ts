@@ -6,9 +6,13 @@ import express from 'express';
 import { createLabApoioQaRouter } from './labApoio.qa.routes.js';
 import { getLabApoioQaStorage } from '../services/labApoio.qa.storage.js';
 
-async function withServer(run: (baseUrl: string) => Promise<void>) {
+async function withServer(
+  deps: Record<string, unknown> = {},
+  run: (baseUrl: string) => Promise<void>
+) {
   const app = express();
-  app.use('/api/lab-apoio/v1/consumer/qa', createLabApoioQaRouter());
+  app.use(express.json());
+  app.use('/api/lab-apoio/v1/consumer/qa', createLabApoioQaRouter(deps));
 
   const server = await new Promise<import('node:http').Server>(resolve => {
     const instance = app.listen(0, () => resolve(instance));
@@ -79,7 +83,7 @@ test('qa routes listam overview e detalhe do item gravado localmente', async () 
     summary: { runId: run.id, successCount: 1 },
   });
 
-  await withServer(async baseUrl => {
+  await withServer({}, async baseUrl => {
     const overview = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/overview?tenantId=tenant-qa');
     assert.equal(overview.status, 200);
     assert.equal(overview.data.success, true);
@@ -121,12 +125,86 @@ test('qa routes limpam storage local', async () => {
     summary: { runId: run.id },
   });
 
-  await withServer(async baseUrl => {
+  await withServer({}, async baseUrl => {
     const cleared = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/storage', { method: 'DELETE' });
     assert.equal(cleared.status, 200);
     assert.equal(cleared.data.success, true);
 
     const overview = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/overview');
     assert.equal(overview.data.data.summary.totalItems, 0);
+  });
+});
+
+test('qa routes executam as acoes publicas de processamento e geracao', async () => {
+  let processCaptured: any = null;
+  let generateCaptured: any = null;
+
+  await withServer({
+    processPendingExams: async (params: any) => {
+      processCaptured = params;
+      return {
+        runId: 'run-qa',
+        qaUrl: '/qa?runId=run-qa',
+        tenantId: params.tenantId,
+        tenantName: 'Tenant QA',
+        ambiente: 'hml',
+        vinculoId: 'vinculo-qa',
+        triggerEvent: params.triggerEvent,
+        triggerEventId: null,
+        batches: 1,
+        attempted: 5,
+        successCount: 5,
+        errorCount: 0,
+        duplicateCount: 0,
+        completionReason: 'SEM_PENDENCIAS',
+        results: [],
+      };
+    },
+    generateQaHmlAgendamentos: async (params: any) => {
+      generateCaptured = params;
+      return {
+        vinculoId: 'vinculo-qa',
+        tenantId: 'tenant-qa',
+        tenantNome: 'Tenant QA',
+        ambiente: 'hml',
+        operationEnv: 'hml',
+        pendingBefore: 0,
+        cleanedAgendaExameIds: [1, 2],
+        generatedCount: 5,
+        rows: [],
+        createdAt: new Date().toISOString(),
+      };
+    },
+  }, async baseUrl => {
+    const processResponse = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/acoes/processar-pendentes', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        tenantId: 'tenant-qa',
+        limit: 5,
+      }),
+    });
+
+    assert.equal(processResponse.status, 200);
+    assert.equal(processResponse.data.success, true);
+    assert.equal(processCaptured.tenantId, 'tenant-qa');
+    assert.equal(processCaptured.triggerEvent, 'QA_PUBLICO');
+
+    const generateResponse = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/acoes/gerar-agendamentos-hml', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        tenantId: 'tenant-qa',
+      }),
+    });
+
+    assert.equal(generateResponse.status, 200);
+    assert.equal(generateResponse.data.success, true);
+    assert.equal(generateCaptured.tenantId, 'tenant-qa');
+    assert.equal(generateResponse.data.data.generatedCount, 5);
   });
 });

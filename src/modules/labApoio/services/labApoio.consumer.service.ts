@@ -4,7 +4,7 @@ import { LabApoioApiClient, type LabApoioApiClientLike } from './labApoio.api-cl
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
 import { getLabApoioQaStorage, type CreateQaRunInput, type LabApoioQaStorage } from './labApoio.qa.storage.js';
 import { buildSyntheticExamArtifacts } from './labApoio.result-generator.js';
-import { type PendingExam, type PendingExamDetail } from './labApoio.schemas.js';
+import { type PendingExam, type PendingExamDetail, type QaHmlBatchData } from './labApoio.schemas.js';
 
 export type ProcessPendingExamsParams = {
   tenantId: string;
@@ -55,6 +55,16 @@ type ProcessPendingExamsDeps = {
   maxBatches?: number;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
+};
+
+type GenerateQaHmlAgendamentosParams = {
+  tenantId?: string;
+};
+
+type GenerateQaHmlAgendamentosDeps = {
+  apiClient?: LabApoioApiClientLike;
+  vinculoId?: string;
+  authSecret?: string;
 };
 
 const defaultApiClient = new LabApoioApiClient({
@@ -395,4 +405,58 @@ export async function processPendingExams(
   });
 
   return summary;
+}
+
+export async function generateQaHmlAgendamentos(
+  params: GenerateQaHmlAgendamentosParams = {},
+  deps: GenerateQaHmlAgendamentosDeps = {}
+): Promise<QaHmlBatchData> {
+  const services = {
+    apiClient: deps.apiClient ?? defaultApiClient,
+    vinculoId: deps.vinculoId ?? env.LAB_APOIO_VINCULO_ID,
+    authSecret: deps.authSecret ?? env.LAB_APOIO_AUTH_SECRET,
+  };
+
+  if (!services.vinculoId || !services.authSecret) {
+    throw new LabApoioConsumerError(
+      500,
+      'CONFIGURATION_ERROR',
+      'Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET para consumir a API.'
+    );
+  }
+
+  const token = await services.apiClient.issueIntegrationToken({
+    vinculoId: services.vinculoId,
+    segredo: services.authSecret,
+    ambienteOperacao: 'hml',
+  });
+  const operationEnv = token.operationEnv ?? token.ambiente;
+
+  if (operationEnv !== 'hml') {
+    throw new LabApoioConsumerError(
+      409,
+      'UPSTREAM_ERROR',
+      'O vinculo de QA nao esta operando em homologacao. Ajuste o ambiente para HML antes de gerar agendamentos de teste.'
+    );
+  }
+  if (!services.apiClient.generateQaHmlBatch) {
+    throw new LabApoioConsumerError(
+      500,
+      'CONFIGURATION_ERROR',
+      'Cliente da API sem suporte para gerar agendamentos QA em homologacao.'
+    );
+  }
+
+  const result = await services.apiClient.generateQaHmlBatch({
+    token: token.token,
+  });
+
+  logEvent('info', 'qa_hml_batch_generated', {
+    tenantId: params.tenantId ?? result.tenantId,
+    vinculoId: result.vinculoId,
+    generatedCount: result.generatedCount,
+    cleanedAgendaExameIds: result.cleanedAgendaExameIds,
+  });
+
+  return result;
 }
