@@ -508,15 +508,15 @@
   <section class="hero">
     <div>
       <span class="eyebrow">IntegraLab Consumidor</span>
-      <h1>Painel publico de QA para acompanhar webhooks, resultados e PDFs gerados</h1>
+      <h1>Painel público de QA para acompanhar webhooks, resultados e PDFs gerados</h1>
       <p>
-        Esta tela replica o conceito de "Logs de integracao" do console, mas focada no consumidor de testes.
+        Esta tela replica o conceito de "Logs de integração" do console, mas focada no consumidor de testes.
         Cada item processado gera arquivos locais por tenant, registra o payload recebido da API, o resultado devolvido e disponibiliza o PDF gerado para o QA validar o fluxo completo.
       </p>
       <div class="hero-actions">
         <button class="btn-primary" id="refreshButton" type="button">Atualizar agora</button>
         <button class="btn-accent" id="generateButton" type="button">Gerar 5 agendamentos HML</button>
-        <button class="btn-secondary" id="processButton" type="button">Processar pendencias</button>
+        <button class="btn-secondary" id="processButton" type="button">Processar pendências</button>
         <button class="btn-secondary" id="helpButton" type="button">Ajuda / Como testar</button>
         <button class="btn-danger" id="clearButton" type="button">Limpar diretorios</button>
       </div>
@@ -524,18 +524,18 @@
     </div>
     <div class="hero-side">
       <div class="note-card">
-        <strong>URL publica sugerida</strong>
+        <strong>URL pública sugerida</strong>
         <div class="subtle" id="publicUrl">Carregando...</div>
       </div>
       <div class="note-card">
-        <strong>Objetivo desta pagina</strong>
+        <strong>Objetivo desta página</strong>
         <p>
           Dar visibilidade real para o QA: o que entrou, o que saiu, qual tenant foi afetado, qual PDF foi montado
-          e quais arquivos foram gravados localmente para auditoria tecnica.
+          e quais arquivos foram gravados localmente para auditoria técnica.
         </p>
       </div>
       <div class="note-card">
-        <strong>Atalhos uteis</strong>
+        <strong>Atalhos úteis</strong>
         <div class="row-actions">
           <a class="link-chip" id="serverHealthLink" href="/health" target="_blank" rel="noreferrer">Health do servidor</a>
           <a class="link-chip" id="moduleHealthLink" href="/api/lab-apoio/v1/consumer/health" target="_blank" rel="noreferrer">Health do modulo</a>
@@ -550,23 +550,23 @@
       <article class="help-card">
         <strong>Como testar</strong>
         <ol>
-          <li>Garanta que o `integraLab-api` esteja online e que o vinculo tenha webhook apontando para esta URL publica.</li>
+          <li>Garanta que o `integraLab-api` esteja online e que o vínculo tenha webhook apontando para esta URL pública.</li>
           <li>Configure no consumidor `LAB_APOIO_VINCULO_ID`, `LAB_APOIO_AUTH_SECRET` e `LAB_APOIO_WEBHOOK_SECRET`.</li>
-          <li>Deixe `AUTO_PROCESS_WEBHOOK=true` para fluxo automatico ou use `POST /api/lab-apoio/v1/consumer/processar-pendentes` para disparo manual.</li>
-          <li>Abra esta pagina e filtre pelo tenant para acompanhar cada item processado.</li>
+          <li>Deixe `AUTO_PROCESS_WEBHOOK=true` para fluxo automático ou use `POST /api/lab-apoio/v1/consumer/processar-pendentes` para disparo manual.</li>
+          <li>Abra esta página e filtre pelo tenant para acompanhar cada item processado.</li>
         </ol>
       </article>
       <article class="help-card">
         <strong>O que precisa existir no Macro</strong>
         <ul>
-          <li>Laboratorio de apoio ativo em `lab_apoio`, com `lab_uuid` consistente com a conta/vinculo.</li>
-          <li>Relacionamentos ativos em `lab_apoio_unidade` e `lab_apoio_unidade_exame` para os codigos de exame que o QA quer exercitar.</li>
-          <li>Itens pendentes em `agendaexameitens` com `liberado <> 'SIM'`, permitindo a API listar as pendencias.</li>
-          <li>Na API, variaveis do Macro configuradas para PDF: `LAB_APOIO_MACRO_PRF_ID`, `LAB_APOIO_MACRO_SERV_ID` e `LAB_APOIO_MACRO_FORNEC_ID`.</li>
+          <li>Laboratório de apoio ativo em `lab_apoio`, com `lab_uuid` consistente com a conta/vínculo.</li>
+          <li>Relacionamentos ativos em `lab_apoio_unidade` e `lab_apoio_unidade_exame` para os códigos de exame que o QA quer exercitar.</li>
+          <li>Itens pendentes em `agendaexameitens` com `liberado <> 'SIM'`, permitindo a API listar as pendências.</li>
+          <li>Na API, variáveis do Macro configuradas para PDF: `LAB_APOIO_MACRO_PRF_ID`, `LAB_APOIO_MACRO_SERV_ID` e `LAB_APOIO_MACRO_FORNEC_ID`.</li>
         </ul>
       </article>
       <article class="help-card">
-        <strong>Consultas SQL de validacao</strong>
+        <strong>Consultas SQL de validação</strong>
         <pre>SELECT id, descricao, lab_uuid, status
 FROM lab_apoio
 WHERE lab_uuid IS NOT NULL;
@@ -581,17 +581,17 @@ WHERE COALESCE(liberado, 'NAO') <> 'SIM'
 ORDER BY id DESC;</pre>
       </article>
       <article class="help-card">
-        <strong>Endpoints disponiveis</strong>
+        <strong>Endpoints disponíveis</strong>
         <ul>
           <li><code>GET /health</code>: health geral do servidor.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/health</code>: health do modulo consumidor.</li>
           <li><code>POST /api/lab-apoio/v1/consumer/webhook</code>: recebe webhook da API.</li>
           <li><code>POST /api/lab-apoio/v1/consumer/processar-pendentes</code>: dispara processamento manual.</li>
-          <li><code>GET /qa</code>: abre esta tela publica de QA.</li>
+          <li><code>GET /qa</code>: abre esta tela pública de QA.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/overview</code>: resumo com KPIs, tenants, runs e itens.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId</code>: detalhe completo do item processado.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId/arquivos/:kind</code>: baixa ou visualiza <code>entrada</code>, <code>saida</code>, <code>resultado</code>, <code>resposta</code> ou <code>pdf</code>.</li>
-          <li><code>GET /api/lab-apoio/v1/consumer/qa/runs/:runId/arquivos/:kind</code>: baixa <code>contexto</code>, <code>webhook</code> ou <code>resumo</code> da execucao.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/qa/runs/:runId/arquivos/:kind</code>: baixa <code>contexto</code>, <code>webhook</code> ou <code>resumo</code> da execução.</li>
           <li><code>DELETE /api/lab-apoio/v1/consumer/qa/storage</code>: limpa SQLite e diretorios locais de QA.</li>
         </ul>
       </article>
@@ -645,7 +645,7 @@ ORDER BY id DESC;</pre>
       </div>
       <div class="field">
         <label for="runFilter">RunId</label>
-        <input id="runFilter" type="text" placeholder="Opcional para focar uma execucao">
+        <input id="runFilter" type="text" placeholder="Opcional para focar uma execução">
       </div>
     </div>
   </section>
@@ -655,7 +655,7 @@ ORDER BY id DESC;</pre>
       <div class="panel-head">
         <div>
           <h2>Itens processados</h2>
-          <p>Lista publica por tenant, com status, contexto clinico sintetico e acesso aos arquivos gerados.</p>
+          <p>Lista pública por tenant, com status, contexto clínico sintético e acesso aos arquivos gerados.</p>
         </div>
       </div>
       <div class="table-wrap">
@@ -681,7 +681,7 @@ ORDER BY id DESC;</pre>
       <div class="panel-head">
         <div>
           <h2>Detalhe do processamento</h2>
-          <p>Ao selecionar um item, a pagina mostra o que veio da API, o resultado sintetico e o PDF correspondente.</p>
+          <p>Ao selecionar um item, a página mostra o que veio da API, o resultado sintético e o PDF correspondente.</p>
         </div>
       </div>
       <div id="detailContainer" class="empty">
@@ -806,7 +806,7 @@ ORDER BY id DESC;</pre>
     const response = await fetch(url, options);
     const data = await response.json();
     if (!response.ok || !data.success) {
-      throw new Error(data.message || 'Falha na comunicacao com a tela publica de QA.');
+      throw new Error(data.message || 'Falha na comunicação com a tela pública de QA.');
     }
     return data.data;
   }
@@ -876,7 +876,7 @@ ORDER BY id DESC;</pre>
         <div class="meta-item"><span>Tenant</span>${escapeHtml(detail.tenantName || detail.tenantId)}</div>
         <div class="meta-item"><span>RunId</span>${escapeHtml(detail.runId)}</div>
         <div class="meta-item"><span>Evento</span>${escapeHtml(detail.run.triggerEvent)}</div>
-        <div class="meta-item"><span>Vinculo</span>${escapeHtml(detail.vinculoId || '-')}</div>
+        <div class="meta-item"><span>Vínculo</span>${escapeHtml(detail.vinculoId || '-')}</div>
         <div class="meta-item"><span>AgendaExameId</span>${detail.agendaExameId}</div>
         <div class="meta-item"><span>AgendaExameItemId</span>${detail.agendaExameItemId}</div>
         <div class="meta-item"><span>CodExame</span>${detail.codexame}</div>
@@ -927,7 +927,7 @@ ORDER BY id DESC;</pre>
         <h3>Dados recebidos da API</h3>
         <div class="json-grid">
           <div>
-            <p class="subtle">Pendencia listada</p>
+            <p class="subtle">Pendência listada</p>
             <pre>${escapeHtml(pretty(detail.pendingExam))}</pre>
           </div>
           <div>
@@ -938,7 +938,7 @@ ORDER BY id DESC;</pre>
       </article>
 
       <article class="detail-card">
-        <h3>Resultado sintetico gerado</h3>
+        <h3>Resultado sintético gerado</h3>
         <div class="json-grid">
           <div>
             <p class="subtle">Payload de resultado</p>
@@ -952,7 +952,7 @@ ORDER BY id DESC;</pre>
       </article>
 
       <article class="detail-card">
-        <h3>Webhook e resumo da execucao</h3>
+        <h3>Webhook e resumo da execução</h3>
         <div class="json-grid">
           <div>
             <p class="subtle">Webhook validado</p>
@@ -1020,7 +1020,7 @@ ORDER BY id DESC;</pre>
 
   async function processPending() {
     elements.processButton.disabled = true;
-    setActionFeedback('Processando pendencias atuais do HML...', 'default');
+    setActionFeedback('Processando pendências atuais do HML...', 'default');
     try {
       const result = await fetchJson(`${apiBase}/acoes/processar-pendentes`, {
         method: 'POST',
@@ -1029,7 +1029,7 @@ ORDER BY id DESC;</pre>
         },
         body: JSON.stringify({}),
       });
-      setActionFeedback(`Processamento concluido: ${result.successCount} sucesso(s), ${result.errorCount} erro(s), ${result.duplicateCount} duplicado(s).`, 'success');
+      setActionFeedback(`Processamento concluído: ${result.successCount} sucesso(s), ${result.errorCount} erro(s), ${result.duplicateCount} duplicado(s).`, 'success');
       await loadOverview();
     } finally {
       elements.processButton.disabled = false;
@@ -1038,7 +1038,7 @@ ORDER BY id DESC;</pre>
 
   async function generateHmlBatch() {
     elements.generateButton.disabled = true;
-    setActionFeedback('Gerando 5 novos agendamentos de homologacao...', 'default');
+    setActionFeedback('Gerando 5 novos agendamentos de homologação...', 'default');
     try {
       const result = await fetchJson(`${apiBase}/acoes/gerar-agendamentos-hml`, {
         method: 'POST',
@@ -1047,7 +1047,7 @@ ORDER BY id DESC;</pre>
         },
         body: JSON.stringify({}),
       });
-      setActionFeedback(`Lote gerado com ${result.generatedCount} agendamento(s). ${result.cleanedAgendaExameIds.length} agenda(s) QA antiga(s) foram removidas antes da insercao.`, 'success');
+      setActionFeedback(`Lote gerado com ${result.generatedCount} agendamento(s). ${result.cleanedAgendaExameIds.length} agenda(s) QA antiga(s) foram removidas antes da inserção.`, 'success');
       await loadOverview();
     } finally {
       elements.generateButton.disabled = false;
@@ -1088,9 +1088,9 @@ ORDER BY id DESC;</pre>
 
   function showError(error) {
     console.error(error);
-    setActionFeedback(error.message || 'Falha ao executar a acao solicitada.', 'error');
+    setActionFeedback(error.message || 'Falha ao executar a ação solicitada.', 'error');
     elements.detailContainer.className = 'empty';
-    elements.detailContainer.textContent = error.message || 'Falha ao carregar a tela publica de QA.';
+    elements.detailContainer.textContent = error.message || 'Falha ao carregar a tela pública de QA.';
   }
 
   async function bootstrap() {
