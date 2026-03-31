@@ -449,6 +449,7 @@ export async function generateQaHmlAgendamentos(
 
   const result = await services.apiClient.generateQaHmlBatch({
     token: token.token,
+    tenantId: token.tenantId,
   });
 
   logEvent('info', 'qa_hml_batch_generated', {

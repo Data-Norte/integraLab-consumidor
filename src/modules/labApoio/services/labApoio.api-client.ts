@@ -55,6 +55,7 @@ export type LabApoioApiClientLike = {
   }): Promise<ResultadoRecebido>;
   generateQaHmlBatch?(params: {
     token: string;
+    tenantId: string;
   }): Promise<QaHmlBatchData>;
 };
 
@@ -173,6 +174,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
 
   async generateQaHmlBatch(params: {
     token: string;
+    tenantId: string;
   }) {
     try {
       const response = await this.http.post(
@@ -181,6 +183,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
         {
           headers: {
             Authorization: `Bearer ${params.token}`,
+            'x-tenant-id': params.tenantId,
           },
         }
       );

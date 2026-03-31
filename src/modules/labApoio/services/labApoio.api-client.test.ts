@@ -156,6 +156,7 @@ test('LabApoioApiClient gera lote QA HML com bearer token', async () => {
     assert.equal(req.method, 'POST');
     assert.equal(req.url, '/api/lab-apoio/v1/integracao/qa/hml/agendamentos');
     assert.equal(req.headers.authorization, 'Bearer jwt');
+    assert.equal(req.headers['x-tenant-id'], 'tenant-001');
 
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify({
@@ -188,6 +189,7 @@ test('LabApoioApiClient gera lote QA HML com bearer token', async () => {
 
     const batch = await client.generateQaHmlBatch({
       token: 'jwt',
+      tenantId: 'tenant-001',
     });
 
     assert.equal(batch.operationEnv, 'hml');
