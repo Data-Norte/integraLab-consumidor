@@ -2,6 +2,7 @@ import env, { withPublicBasePath } from '../../../config/env.js';
 import { logEvent } from '../../../shared/logging/logger.js';
 import { LabApoioApiClient, type LabApoioApiClientLike } from './labApoio.api-client.js';
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
+import { getLabApoioQaRuntimeConfig, type LabApoioQaRuntimeConfigStore } from './labApoio.qa.runtime-config.js';
 import { getLabApoioQaStorage, type CreateQaRunInput, type LabApoioQaStorage } from './labApoio.qa.storage.js';
 import { buildSyntheticExamArtifacts } from './labApoio.result-generator.js';
 import { type PendingExam, type PendingExamDetail, type QaHmlBatchData } from './labApoio.schemas.js';
@@ -55,6 +56,7 @@ type ProcessPendingExamsDeps = {
   maxBatches?: number;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
+  runtimeConfig?: Pick<LabApoioQaRuntimeConfigStore, 'getResolvedSecrets'>;
 };
 
 type GenerateQaHmlAgendamentosParams = {
@@ -65,6 +67,7 @@ type GenerateQaHmlAgendamentosDeps = {
   apiClient?: LabApoioApiClientLike;
   vinculoId?: string;
   authSecret?: string;
+  runtimeConfig?: Pick<LabApoioQaRuntimeConfigStore, 'getResolvedSecrets'>;
 };
 
 const defaultApiClient = new LabApoioApiClient({
@@ -137,11 +140,12 @@ export async function processPendingExams(
   params: ProcessPendingExamsParams,
   deps: ProcessPendingExamsDeps = {}
 ): Promise<ProcessPendingExamsResult> {
+  const runtimeSecrets = (deps.runtimeConfig ?? getLabApoioQaRuntimeConfig()).getResolvedSecrets();
   const services = {
     apiClient: deps.apiClient ?? defaultApiClient,
     qaStorage: deps.qaStorage ?? getLabApoioQaStorage(),
     vinculoId: deps.vinculoId ?? env.LAB_APOIO_VINCULO_ID,
-    authSecret: deps.authSecret ?? env.LAB_APOIO_AUTH_SECRET,
+    authSecret: deps.authSecret ?? runtimeSecrets.authSecret,
     fornecId: deps.fornecId ?? env.LAB_APOIO_FORNEC_ID,
     sendInlinePdf: deps.sendInlinePdf ?? env.LAB_APOIO_SEND_INLINE_PDF,
     batchSize: deps.batchSize ?? env.PROCESSING_BATCH_SIZE,
@@ -158,7 +162,7 @@ export async function processPendingExams(
     throw new LabApoioConsumerError(
       500,
       'CONFIGURATION_ERROR',
-      'Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET para consumir a API.'
+      'Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET no .env ou na tela pública de QA para consumir a API.'
     );
   }
 
@@ -411,17 +415,18 @@ export async function generateQaHmlAgendamentos(
   params: GenerateQaHmlAgendamentosParams = {},
   deps: GenerateQaHmlAgendamentosDeps = {}
 ): Promise<QaHmlBatchData> {
+  const runtimeSecrets = (deps.runtimeConfig ?? getLabApoioQaRuntimeConfig()).getResolvedSecrets();
   const services = {
     apiClient: deps.apiClient ?? defaultApiClient,
     vinculoId: deps.vinculoId ?? env.LAB_APOIO_VINCULO_ID,
-    authSecret: deps.authSecret ?? env.LAB_APOIO_AUTH_SECRET,
+    authSecret: deps.authSecret ?? runtimeSecrets.authSecret,
   };
 
   if (!services.vinculoId || !services.authSecret) {
     throw new LabApoioConsumerError(
       500,
       'CONFIGURATION_ERROR',
-      'Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET para consumir a API.'
+      'Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET no .env ou na tela pública de QA para consumir a API.'
     );
   }
 

@@ -4,6 +4,7 @@ import { ZodError, z } from 'zod';
 
 import env from '../../../config/env.js';
 import { LabApoioConsumerError } from '../services/labApoio.consumer.errors.js';
+import { getLabApoioQaRuntimeConfig, type LabApoioQaRuntimeConfigStore } from '../services/labApoio.qa.runtime-config.js';
 import { generateQaHmlAgendamentos, processPendingExams } from '../services/labApoio.consumer.service.js';
 import { getLabApoioQaStorage } from '../services/labApoio.qa.storage.js';
 
@@ -35,6 +36,26 @@ const qaActionSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional(),
 });
 
+const qaSecretsUpdateSchema = z.object({
+  authSecret: z.string().trim().max(500).optional(),
+  webhookSecret: z.string().trim().max(500).optional(),
+  clearAuthSecret: z.boolean().optional(),
+  clearWebhookSecret: z.boolean().optional(),
+}).superRefine((value, ctx) => {
+  const hasUpdate = value.authSecret !== undefined
+    || value.webhookSecret !== undefined
+    || value.clearAuthSecret
+    || value.clearWebhookSecret;
+
+  if (!hasUpdate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Informe authSecret ou webhookSecret para salvar no QA.',
+      path: ['authSecret'],
+    });
+  }
+});
+
 function handleRouteError(res: Response, error: unknown) {
   if (error instanceof ZodError) {
     return res.status(400).json({
@@ -63,11 +84,13 @@ function handleRouteError(res: Response, error: unknown) {
 type QaDeps = {
   processPendingExams: typeof processPendingExams;
   generateQaHmlAgendamentos: typeof generateQaHmlAgendamentos;
+  runtimeConfig: Pick<LabApoioQaRuntimeConfigStore, 'getPublicState' | 'updateSecrets'>;
 };
 
 const defaultDeps: QaDeps = {
   processPendingExams,
   generateQaHmlAgendamentos,
+  runtimeConfig: getLabApoioQaRuntimeConfig(),
 };
 
 export function createLabApoioQaRouter(deps: Partial<QaDeps> = {}) {
@@ -84,6 +107,31 @@ export function createLabApoioQaRouter(deps: Partial<QaDeps> = {}) {
       const data = storage.getOverview(query);
       return res.status(200).json({
         success: true,
+        data,
+      });
+    } catch (error) {
+      return handleRouteError(res, error);
+    }
+  });
+
+  router.get('/configuracao/segredos', (_req: Request, res: Response) => {
+    try {
+      return res.status(200).json({
+        success: true,
+        data: services.runtimeConfig.getPublicState(),
+      });
+    } catch (error) {
+      return handleRouteError(res, error);
+    }
+  });
+
+  router.patch('/configuracao/segredos', (req: Request, res: Response) => {
+    try {
+      const body = qaSecretsUpdateSchema.parse(req.body ?? {});
+      const data = services.runtimeConfig.updateSecrets(body);
+      return res.status(200).json({
+        success: true,
+        message: 'Segredos de QA salvos com sucesso.',
         data,
       });
     } catch (error) {

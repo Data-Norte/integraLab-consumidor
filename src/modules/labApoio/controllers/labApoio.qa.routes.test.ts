@@ -208,3 +208,67 @@ test('qa routes executam as acoes publicas de processamento e geracao', async ()
     assert.equal(generateResponse.data.data.generatedCount, 5);
   });
 });
+
+test('qa routes consultam e atualizam os segredos persistidos do QA', async () => {
+  let updateCaptured: any = null;
+  let currentState = {
+    authSecret: {
+      configured: true,
+      source: 'env',
+      preview: 'aut******123',
+    },
+    webhookSecret: {
+      configured: false,
+      source: 'missing',
+      preview: null,
+    },
+    updatedAt: null,
+  };
+
+  await withServer({
+    runtimeConfig: {
+      getPublicState: () => currentState,
+      updateSecrets: (input: any) => {
+        updateCaptured = input;
+        currentState = {
+          authSecret: {
+            configured: true,
+            source: input.authSecret ? 'override' : 'env',
+            preview: 'nov******ret',
+          },
+          webhookSecret: {
+            configured: true,
+            source: input.webhookSecret ? 'override' : 'missing',
+            preview: 'web******ret',
+          },
+          updatedAt: '2026-03-31T12:00:00.000Z',
+        };
+        return currentState;
+      },
+    },
+  }, async baseUrl => {
+    const current = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/configuracao/segredos');
+    assert.equal(current.status, 200);
+    assert.equal(current.data.success, true);
+    assert.equal(current.data.data.authSecret.source, 'env');
+    assert.equal(current.data.data.webhookSecret.configured, false);
+
+    const updated = await requestJson(baseUrl, '/api/lab-apoio/v1/consumer/qa/configuracao/segredos', {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        authSecret: 'novo-auth-secret',
+        webhookSecret: 'novo-webhook-secret',
+      }),
+    });
+
+    assert.equal(updated.status, 200);
+    assert.equal(updated.data.success, true);
+    assert.equal(updateCaptured.authSecret, 'novo-auth-secret');
+    assert.equal(updateCaptured.webhookSecret, 'novo-webhook-secret');
+    assert.equal(updated.data.data.authSecret.source, 'override');
+    assert.equal(updated.data.data.webhookSecret.source, 'override');
+  });
+});

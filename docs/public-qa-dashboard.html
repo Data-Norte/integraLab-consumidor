@@ -14,6 +14,7 @@
       --text: #1d272d;
       --muted: #5a6770;
       --accent: #0d5d63;
+      --accent-strong: #0b4a50;
       --accent-2: #bc6931;
       --accent-3: #1f4f85;
       --ok: #2f6b48;
@@ -443,6 +444,59 @@
       gap: 14px;
     }
 
+    .secrets-panel {
+      display: grid;
+      gap: 16px;
+    }
+
+    .secrets-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .secret-card {
+      border: 1px solid #e7dacd;
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .secret-card strong,
+    .secret-form strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .secret-meta {
+      margin-top: 10px;
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .secret-form {
+      border: 1px solid #e7dacd;
+      border-radius: 20px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.55);
+      display: grid;
+      gap: 14px;
+    }
+
+    .secret-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .help-card pre {
       margin-top: 12px;
       background: #fff;
@@ -479,10 +533,12 @@
     @media (max-width: 1320px) {
       .hero,
       .filters,
-      .layout,
-      .help-columns,
-      .json-grid,
-      .top-grid {
+        .layout,
+        .help-columns,
+        .secrets-grid,
+        .secret-form-grid,
+        .json-grid,
+        .top-grid {
         grid-template-columns: 1fr;
       }
 
@@ -517,6 +573,7 @@
         <button class="btn-primary" id="refreshButton" type="button">Atualizar agora</button>
         <button class="btn-accent" id="generateButton" type="button">Gerar 5 agendamentos HML</button>
         <button class="btn-secondary" id="processButton" type="button">Processar pendências</button>
+        <button class="btn-secondary" id="secretButton" type="button">Adicionar / alterar segredos</button>
         <button class="btn-secondary" id="helpButton" type="button">Ajuda / Como testar</button>
         <button class="btn-danger" id="clearButton" type="button">Limpar diretorios</button>
       </div>
@@ -545,13 +602,71 @@
     </div>
   </section>
 
+  <section class="panel secrets-panel" id="secretPanel" hidden>
+    <div class="panel-head">
+      <div>
+        <h2>Segredos usados no QA</h2>
+        <p>Os valores salvos aqui passam a valer imediatamente para autenticação na API e validação do webhook, sem depender de reiniciar o consumidor.</p>
+      </div>
+      <button class="btn-secondary" id="secretCloseButton" type="button">Fechar</button>
+    </div>
+
+    <div class="secrets-grid">
+      <article class="secret-card">
+        <strong>Auth secret</strong>
+        <div class="subtle" id="authSecretPreview">Carregando...</div>
+        <div class="secret-meta">
+          <div id="authSecretSource">Origem: -</div>
+          <div id="authSecretConfigured">Configurado: -</div>
+        </div>
+      </article>
+
+      <article class="secret-card">
+        <strong>Webhook secret</strong>
+        <div class="subtle" id="webhookSecretPreview">Carregando...</div>
+        <div class="secret-meta">
+          <div id="webhookSecretSource">Origem: -</div>
+          <div id="webhookSecretConfigured">Configurado: -</div>
+        </div>
+      </article>
+
+      <article class="secret-card">
+        <strong>Última atualização</strong>
+        <div class="subtle" id="secretUpdatedAt">Ainda sem override salvo.</div>
+        <div class="secret-meta">
+          <div>Deixe os campos vazios para manter o valor atual.</div>
+          <div>Use “Remover override salvo” para voltar a depender apenas do `.env`.</div>
+        </div>
+      </article>
+    </div>
+
+    <form class="secret-form" id="secretForm">
+      <strong>Adicionar ou alterar segredos</strong>
+      <div class="secret-form-grid">
+        <div class="field">
+          <label for="authSecretInput">Auth secret</label>
+          <input id="authSecretInput" type="password" autocomplete="off" placeholder="Informe o secret técnico usado para autenticar na API">
+        </div>
+        <div class="field">
+          <label for="webhookSecretInput">Webhook secret</label>
+          <input id="webhookSecretInput" type="password" autocomplete="off" placeholder="Informe o secret usado para validar o webhook recebido">
+        </div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-primary" id="saveSecretsButton" type="submit">Salvar segredos</button>
+        <button class="btn-secondary" id="clearSecretsButton" type="button">Remover override salvo</button>
+      </div>
+      <div class="action-feedback" id="secretFeedback">Os segredos atuais ficam mascarados acima. O valor digitado só aparece no momento da edição.</div>
+    </form>
+  </section>
+
   <section class="help-panel" id="helpPanel">
     <div class="help-columns">
       <article class="help-card">
         <strong>Como testar</strong>
         <ol>
           <li>Garanta que o `integraLab-api` esteja online e que o vínculo tenha webhook apontando para esta URL pública.</li>
-          <li>Configure no consumidor `LAB_APOIO_VINCULO_ID`, `LAB_APOIO_AUTH_SECRET` e `LAB_APOIO_WEBHOOK_SECRET`.</li>
+          <li>Configure no consumidor `LAB_APOIO_VINCULO_ID` e, se preferir, informe `LAB_APOIO_AUTH_SECRET` e `LAB_APOIO_WEBHOOK_SECRET` pelo próprio painel público de QA.</li>
           <li>Deixe `AUTO_PROCESS_WEBHOOK=true` para fluxo automático ou use `POST /api/lab-apoio/v1/consumer/processar-pendentes` para disparo manual.</li>
           <li>Abra esta página e filtre pelo tenant para acompanhar cada item processado.</li>
         </ol>
@@ -589,6 +704,8 @@ ORDER BY id DESC;</pre>
           <li><code>POST /api/lab-apoio/v1/consumer/processar-pendentes</code>: dispara processamento manual.</li>
           <li><code>GET /qa</code>: abre esta tela pública de QA.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/overview</code>: resumo com KPIs, tenants, runs e itens.</li>
+          <li><code>GET /api/lab-apoio/v1/consumer/qa/configuracao/segredos</code>: mostra a origem e o preview mascarado dos segredos atuais.</li>
+          <li><code>PATCH /api/lab-apoio/v1/consumer/qa/configuracao/segredos</code>: salva ou limpa os segredos usados no QA.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId</code>: detalhe completo do item processado.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId/arquivos/:kind</code>: baixa ou visualiza <code>entrada</code>, <code>saida</code>, <code>resultado</code>, <code>resposta</code> ou <code>pdf</code>.</li>
           <li><code>GET /api/lab-apoio/v1/consumer/qa/runs/:runId/arquivos/:kind</code>: baixa <code>contexto</code>, <code>webhook</code> ou <code>resumo</code> da execução.</li>
@@ -710,6 +827,7 @@ ORDER BY id DESC;</pre>
   const state = {
     overview: null,
     selectedItemId: null,
+    secretsConfig: null,
   };
 
   const elements = {
@@ -722,6 +840,22 @@ ORDER BY id DESC;</pre>
     detailContainer: document.getElementById('detailContainer'),
     helpPanel: document.getElementById('helpPanel'),
     helpButton: document.getElementById('helpButton'),
+    secretPanel: document.getElementById('secretPanel'),
+    secretButton: document.getElementById('secretButton'),
+    secretCloseButton: document.getElementById('secretCloseButton'),
+    secretForm: document.getElementById('secretForm'),
+    authSecretInput: document.getElementById('authSecretInput'),
+    webhookSecretInput: document.getElementById('webhookSecretInput'),
+    saveSecretsButton: document.getElementById('saveSecretsButton'),
+    clearSecretsButton: document.getElementById('clearSecretsButton'),
+    secretFeedback: document.getElementById('secretFeedback'),
+    authSecretPreview: document.getElementById('authSecretPreview'),
+    authSecretSource: document.getElementById('authSecretSource'),
+    authSecretConfigured: document.getElementById('authSecretConfigured'),
+    webhookSecretPreview: document.getElementById('webhookSecretPreview'),
+    webhookSecretSource: document.getElementById('webhookSecretSource'),
+    webhookSecretConfigured: document.getElementById('webhookSecretConfigured'),
+    secretUpdatedAt: document.getElementById('secretUpdatedAt'),
     serverHealthLink: document.getElementById('serverHealthLink'),
     moduleHealthLink: document.getElementById('moduleHealthLink'),
     guideLink: document.getElementById('guideLink'),
@@ -818,6 +952,107 @@ ORDER BY id DESC;</pre>
       elements.actionFeedback.classList.add('is-error');
     } else if (tone === 'success') {
       elements.actionFeedback.classList.add('is-success');
+    }
+  }
+
+  function setSecretFeedback(message, tone = 'default') {
+    elements.secretFeedback.textContent = message;
+    elements.secretFeedback.className = 'action-feedback';
+    if (tone === 'error') {
+      elements.secretFeedback.classList.add('is-error');
+    } else if (tone === 'success') {
+      elements.secretFeedback.classList.add('is-success');
+    }
+  }
+
+  function secretSourceLabel(source) {
+    if (source === 'override') return 'Override salvo no QA';
+    if (source === 'env') return 'Arquivo .env';
+    return 'Nao configurado';
+  }
+
+  function renderSecretsConfig(config) {
+    state.secretsConfig = config;
+    elements.authSecretPreview.textContent = config.authSecret.preview || 'Nao configurado.';
+    elements.authSecretSource.textContent = `Origem: ${secretSourceLabel(config.authSecret.source)}`;
+    elements.authSecretConfigured.textContent = `Configurado: ${config.authSecret.configured ? 'Sim' : 'Nao'}`;
+
+    elements.webhookSecretPreview.textContent = config.webhookSecret.preview || 'Nao configurado.';
+    elements.webhookSecretSource.textContent = `Origem: ${secretSourceLabel(config.webhookSecret.source)}`;
+    elements.webhookSecretConfigured.textContent = `Configurado: ${config.webhookSecret.configured ? 'Sim' : 'Nao'}`;
+
+    elements.secretUpdatedAt.textContent = config.updatedAt
+      ? formatDate(config.updatedAt)
+      : 'Ainda sem override salvo.';
+  }
+
+  function toggleSecretPanel(forceOpen) {
+    const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : elements.secretPanel.hidden;
+    elements.secretPanel.hidden = !nextOpen;
+  }
+
+  async function loadSecretsConfig() {
+    const config = await fetchJson(`${apiBase}/configuracao/segredos`);
+    renderSecretsConfig(config);
+  }
+
+  async function saveSecretsConfig() {
+    const authSecret = elements.authSecretInput.value.trim();
+    const webhookSecret = elements.webhookSecretInput.value.trim();
+
+    if (!authSecret && !webhookSecret) {
+      setSecretFeedback('Preencha authSecret, webhookSecret ou use "Remover override salvo".', 'error');
+      return;
+    }
+
+    elements.saveSecretsButton.disabled = true;
+    setSecretFeedback('Salvando segredos do QA...', 'default');
+    try {
+      const payload = {};
+      if (authSecret) payload.authSecret = authSecret;
+      if (webhookSecret) payload.webhookSecret = webhookSecret;
+
+      const config = await fetchJson(`${apiBase}/configuracao/segredos`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      elements.authSecretInput.value = '';
+      elements.webhookSecretInput.value = '';
+      renderSecretsConfig(config);
+      setSecretFeedback('Segredos de QA salvos com sucesso.', 'success');
+    } finally {
+      elements.saveSecretsButton.disabled = false;
+    }
+  }
+
+  async function clearSecretsConfig() {
+    const confirmed = window.confirm('Isto remove os overrides salvos e faz o consumidor voltar a depender apenas do arquivo .env. Deseja continuar?');
+    if (!confirmed) return;
+
+    elements.clearSecretsButton.disabled = true;
+    setSecretFeedback('Removendo overrides salvos do QA...', 'default');
+    try {
+      const config = await fetchJson(`${apiBase}/configuracao/segredos`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          clearAuthSecret: true,
+          clearWebhookSecret: true,
+        }),
+      });
+
+      elements.authSecretInput.value = '';
+      elements.webhookSecretInput.value = '';
+      renderSecretsConfig(config);
+      setSecretFeedback('Overrides removidos. O consumidor voltou a usar apenas o .env.', 'success');
+    } finally {
+      elements.clearSecretsButton.disabled = false;
     }
   }
 
@@ -1059,6 +1294,29 @@ ORDER BY id DESC;</pre>
       elements.helpPanel.classList.toggle('open');
     });
 
+    elements.secretButton.addEventListener('click', () => {
+      toggleSecretPanel();
+    });
+
+    elements.secretCloseButton.addEventListener('click', () => {
+      toggleSecretPanel(false);
+    });
+
+    elements.secretForm.addEventListener('submit', event => {
+      event.preventDefault();
+      saveSecretsConfig().catch(error => {
+        console.error(error);
+        setSecretFeedback(error.message || 'Falha ao salvar os segredos do QA.', 'error');
+      });
+    });
+
+    elements.clearSecretsButton.addEventListener('click', () => {
+      clearSecretsConfig().catch(error => {
+        console.error(error);
+        setSecretFeedback(error.message || 'Falha ao remover os segredos salvos do QA.', 'error');
+      });
+    });
+
     elements.refreshButton.addEventListener('click', () => {
       loadOverview().catch(showError);
     });
@@ -1098,6 +1356,10 @@ ORDER BY id DESC;</pre>
     setPublicUrl();
     syncFiltersFromUrl();
     bindEvents();
+    await loadSecretsConfig().catch(error => {
+      console.error(error);
+      setSecretFeedback(error.message || 'Falha ao carregar os segredos atuais do QA.', 'error');
+    });
     await loadOverview();
   }
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { processPendingExams } from './labApoio.consumer.service.js';
+import { generateQaHmlAgendamentos, processPendingExams } from './labApoio.consumer.service.js';
 
 function createQaStorageStub() {
   let itemSequence = 0;
@@ -262,4 +262,128 @@ test('processPendingExams falha quando as credenciais de integracao nao estao co
     }),
     /Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET/
   );
+});
+
+test('processPendingExams usa o authSecret salvo no QA quando nao ha override explicito', async () => {
+  let capturedTokenRequest: any = null;
+
+  const result = await processPendingExams({
+    tenantId: 'tenant-001',
+  }, {
+    vinculoId: 'vinculo-001',
+    runtimeConfig: {
+      getResolvedSecrets: () => ({
+        authSecret: 'segredo-qa-salvo',
+        webhookSecret: 'webhook-qa-salvo',
+        authSecretSource: 'override',
+        webhookSecretSource: 'override',
+        updatedAt: '2026-03-31T12:00:00.000Z',
+      }),
+    },
+    processingDelayMs: 0,
+    maxBatches: 1,
+    qaStorage: createQaStorageStub(),
+    apiClient: {
+      issueIntegrationToken: async params => {
+        capturedTokenRequest = params;
+        return {
+          token: 'jwt-integracao',
+          ambiente: 'hml',
+          operationEnv: 'hml',
+          vinculoId: 'vinculo-001',
+          tenantId: 'tenant-001',
+          clienteId: 'tenant-001',
+          labUuid: 'lab-uuid-1',
+          expiresIn: '15m',
+          scope: 'integracao',
+        };
+      },
+      listPendingExams: async () => ({
+        page: 1,
+        limit: 20,
+        total: 0,
+        rows: [],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 0,
+        itens: [],
+      }),
+      sendResultado: async () => ({
+        duplicado: false,
+        resultadoId: 'res-1',
+      }),
+    },
+  });
+
+  assert.equal(result.successCount, 0);
+  assert.deepEqual(capturedTokenRequest, {
+    vinculoId: 'vinculo-001',
+    segredo: 'segredo-qa-salvo',
+  });
+});
+
+test('generateQaHmlAgendamentos usa o authSecret salvo no QA quando nao ha override explicito', async () => {
+  let capturedTokenRequest: any = null;
+
+  const result = await generateQaHmlAgendamentos({}, {
+    vinculoId: 'vinculo-001',
+    runtimeConfig: {
+      getResolvedSecrets: () => ({
+        authSecret: 'segredo-qa-salvo',
+        webhookSecret: 'webhook-qa-salvo',
+        authSecretSource: 'override',
+        webhookSecretSource: 'override',
+        updatedAt: '2026-03-31T12:00:00.000Z',
+      }),
+    },
+    apiClient: {
+      issueIntegrationToken: async params => {
+        capturedTokenRequest = params;
+        return {
+          token: 'jwt-integracao',
+          ambiente: 'hml',
+          operationEnv: 'hml',
+          vinculoId: 'vinculo-001',
+          tenantId: 'tenant-001',
+          clienteId: 'tenant-001',
+          labUuid: 'lab-uuid-1',
+          expiresIn: '15m',
+          scope: 'integracao',
+        };
+      },
+      listPendingExams: async () => ({
+        page: 1,
+        limit: 20,
+        total: 0,
+        rows: [],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 0,
+        itens: [],
+      }),
+      sendResultado: async () => ({
+        duplicado: false,
+        resultadoId: 'res-1',
+      }),
+      generateQaHmlBatch: async () => ({
+        vinculoId: 'vinculo-001',
+        tenantId: 'tenant-001',
+        tenantNome: 'Tenant QA',
+        ambiente: 'hml',
+        operationEnv: 'hml',
+        pendingBefore: 0,
+        cleanedAgendaExameIds: [],
+        generatedCount: 5,
+        rows: [],
+        createdAt: '2026-03-31T12:00:00.000Z',
+      }),
+    },
+  });
+
+  assert.equal(result.generatedCount, 5);
+  assert.deepEqual(capturedTokenRequest, {
+    vinculoId: 'vinculo-001',
+    segredo: 'segredo-qa-salvo',
+    ambienteOperacao: 'hml',
+  });
 });
