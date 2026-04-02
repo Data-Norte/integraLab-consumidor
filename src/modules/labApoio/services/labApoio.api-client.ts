@@ -5,10 +5,14 @@ import { ZodError } from 'zod';
 import {
   buildApiSuccessSchema,
   integrationTokenDataSchema,
+  pendingExamDetailDataSchema,
   pendingExamsDataSchema,
+  qaHmlBatchDataSchema,
   resultadoRecebidoSchema,
   type IntegrationTokenData,
+  type PendingExamDetail,
   type PendingExamsData,
+  type QaHmlBatchData,
   type ResultadoRecebido,
 } from './labApoio.schemas.js';
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
@@ -30,6 +34,7 @@ export type LabApoioApiClientLike = {
   issueIntegrationToken(params: {
     vinculoId: string;
     segredo: string;
+    ambienteOperacao?: 'hml' | 'prd';
   }): Promise<IntegrationTokenData>;
   listPendingExams(params: {
     token: string;
@@ -37,12 +42,21 @@ export type LabApoioApiClientLike = {
     page?: number;
     limit?: number;
   }): Promise<PendingExamsData>;
+  getPendingExamDetail(params: {
+    token: string;
+    tenantId: string;
+    agendaExameId: number;
+  }): Promise<PendingExamDetail>;
   sendResultado(params: {
     token: string;
     tenantId: string;
     agendaExameId: number;
     payload: SendResultadoPayload;
   }): Promise<ResultadoRecebido>;
+  generateQaHmlBatch?(params: {
+    token: string;
+    tenantId: string;
+  }): Promise<QaHmlBatchData>;
 };
 
 function resolveErrorMessage(data: unknown, fallback: string) {
@@ -63,6 +77,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   async issueIntegrationToken(params: {
     vinculoId: string;
     segredo: string;
+    ambienteOperacao?: 'hml' | 'prd';
   }) {
     try {
       const response = await this.http.post(
@@ -70,6 +85,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
         {
           vinculoId: params.vinculoId,
           segredo: params.segredo,
+          ambienteOperacao: params.ambienteOperacao,
         }
       );
 
@@ -108,6 +124,29 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
     }
   }
 
+  async getPendingExamDetail(params: {
+    token: string;
+    tenantId: string;
+    agendaExameId: number;
+  }) {
+    try {
+      const response = await this.http.get(
+        `/api/lab-apoio/v1/integracao/exames/${params.agendaExameId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${params.token}`,
+            'x-tenant-id': params.tenantId,
+          },
+        }
+      );
+
+      const payload = buildApiSuccessSchema(pendingExamDetailDataSchema).parse(response.data);
+      return payload.data;
+    } catch (error) {
+      throw this.normalizeError(error, 'Falha ao consultar detalhe do exame pendente');
+    }
+  }
+
   async sendResultado(params: {
     token: string;
     tenantId: string;
@@ -130,6 +169,29 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
       return payload.data;
     } catch (error) {
       throw this.normalizeError(error, 'Falha ao enviar resultado do exame');
+    }
+  }
+
+  async generateQaHmlBatch(params: {
+    token: string;
+    tenantId: string;
+  }) {
+    try {
+      const response = await this.http.post(
+        '/api/lab-apoio/v1/integracao/qa/hml/agendamentos',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${params.token}`,
+            'x-tenant-id': params.tenantId,
+          },
+        }
+      );
+
+      const payload = buildApiSuccessSchema(qaHmlBatchDataSchema).parse(response.data);
+      return payload.data;
+    } catch (error) {
+      throw this.normalizeError(error, 'Falha ao gerar agendamentos QA em homologacao');
     }
   }
 

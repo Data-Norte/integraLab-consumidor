@@ -1,10 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { processPendingExams } from './labApoio.consumer.service.js';
+import { generateQaHmlAgendamentos, processPendingExams } from './labApoio.consumer.service.js';
+
+function createQaStorageStub() {
+  let itemSequence = 0;
+  return {
+    createRun: () => ({ id: 'run-qa' }),
+    finishRun: () => undefined,
+    recordItem: () => ({ id: `qa-item-${++itemSequence}` }),
+  };
+}
 
 test('processPendingExams consome pendencias e envia resultado inline com pdf', async () => {
   const sentPayloads: any[] = [];
+  let capturedTokenRequest: any = null;
   let listCalls = 0;
 
   const result = await processPendingExams({
@@ -19,17 +29,22 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
     processingDelayMs: 0,
     maxBatches: 3,
     now: () => new Date('2026-03-18T12:00:00.000Z'),
+    qaStorage: createQaStorageStub(),
     apiClient: {
-      issueIntegrationToken: async () => ({
-        token: 'jwt-integracao',
-        ambiente: 'hml',
-        vinculoId: 'vinculo-001',
-        tenantId: 'tenant-001',
-        clienteId: 'tenant-001',
-        labUuid: 'lab-uuid-1',
-        expiresIn: '15m',
-        scope: 'integracao',
-      }),
+      issueIntegrationToken: async params => {
+        capturedTokenRequest = params;
+        return {
+          token: 'jwt-integracao',
+          ambiente: 'prd',
+          operationEnv: 'prd',
+          vinculoId: 'vinculo-001',
+          tenantId: 'tenant-001',
+          clienteId: 'tenant-001',
+          labUuid: 'lab-uuid-1',
+          expiresIn: '15m',
+          scope: 'integracao',
+        };
+      },
       listPendingExams: async () => {
         listCalls += 1;
         if (listCalls === 1) {
@@ -67,6 +82,20 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
           rows: [],
         };
       },
+      getPendingExamDetail: async ({ agendaExameId }) => ({
+        agendaExameId,
+        itens: [
+          {
+            agendaExameItemId: agendaExameId === 100 ? 200 : 201,
+            codexame: agendaExameId === 100 ? 300 : 301,
+            descricaoExame: agendaExameId === 100 ? 'Hemoglobina' : 'Glicemia',
+            status: 'PENDENTE',
+            dataAgenda: '2026-03-18T10:00:00.000Z',
+            pacienteId: 1,
+            medicoId: 10,
+          },
+        ],
+      }),
       sendResultado: async ({ payload }) => {
         sentPayloads.push(payload);
         return {
@@ -80,6 +109,11 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
   assert.equal(result.successCount, 2);
   assert.equal(result.errorCount, 0);
   assert.equal(result.completionReason, 'SEM_PENDENCIAS');
+  assert.deepEqual(capturedTokenRequest, {
+    vinculoId: 'vinculo-001',
+    segredo: 'segredo-123456789',
+  });
+  assert.equal(result.ambiente, 'prd');
   assert.equal(sentPayloads.length, 2);
   assert.equal(sentPayloads[0].idempotencyKey, 'resultado-100-200');
   assert.equal(sentPayloads[0].pdf.idempotencyKey, 'pdf-100-200');
@@ -99,10 +133,12 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
     sendInlinePdf: false,
     processingDelayMs: 0,
     maxBatches: 1,
+    qaStorage: createQaStorageStub(),
     apiClient: {
       issueIntegrationToken: async () => ({
         token: 'jwt-integracao',
         ambiente: 'hml',
+        operationEnv: 'hml',
         vinculoId: 'vinculo-001',
         tenantId: 'tenant-001',
         clienteId: 'tenant-001',
@@ -122,6 +158,20 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
             status: 'PENDENTE',
             dataAgenda: '2026-03-18T10:00:00.000Z',
             pacienteId: 1,
+          },
+        ],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 100,
+        itens: [
+          {
+            agendaExameItemId: 200,
+            codexame: 300,
+            descricaoExame: 'Hemoglobina',
+            status: 'PENDENTE',
+            dataAgenda: '2026-03-18T10:00:00.000Z',
+            pacienteId: 1,
+            medicoId: 10,
           },
         ],
       }),
@@ -148,10 +198,12 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
     authSecret: 'segredo-123456789',
     processingDelayMs: 0,
     maxBatches: 3,
+    qaStorage: createQaStorageStub(),
     apiClient: {
       issueIntegrationToken: async () => ({
         token: 'jwt-integracao',
         ambiente: 'hml',
+        operationEnv: 'hml',
         vinculoId: 'vinculo-001',
         tenantId: 'tenant-001',
         clienteId: 'tenant-001',
@@ -171,6 +223,20 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
             status: 'PENDENTE',
             dataAgenda: '2026-03-18T10:00:00.000Z',
             pacienteId: 1,
+          },
+        ],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 100,
+        itens: [
+          {
+            agendaExameItemId: 200,
+            codexame: 300,
+            descricaoExame: 'Hemoglobina',
+            status: 'PENDENTE',
+            dataAgenda: '2026-03-18T10:00:00.000Z',
+            pacienteId: 1,
+            medicoId: 10,
           },
         ],
       }),
@@ -196,4 +262,128 @@ test('processPendingExams falha quando as credenciais de integracao nao estao co
     }),
     /Configure LAB_APOIO_VINCULO_ID e LAB_APOIO_AUTH_SECRET/
   );
+});
+
+test('processPendingExams usa o authSecret salvo no QA quando nao ha override explicito', async () => {
+  let capturedTokenRequest: any = null;
+
+  const result = await processPendingExams({
+    tenantId: 'tenant-001',
+  }, {
+    vinculoId: 'vinculo-001',
+    runtimeConfig: {
+      getResolvedSecrets: () => ({
+        authSecret: 'segredo-qa-salvo',
+        webhookSecret: 'webhook-qa-salvo',
+        authSecretSource: 'override',
+        webhookSecretSource: 'override',
+        updatedAt: '2026-03-31T12:00:00.000Z',
+      }),
+    },
+    processingDelayMs: 0,
+    maxBatches: 1,
+    qaStorage: createQaStorageStub(),
+    apiClient: {
+      issueIntegrationToken: async params => {
+        capturedTokenRequest = params;
+        return {
+          token: 'jwt-integracao',
+          ambiente: 'hml',
+          operationEnv: 'hml',
+          vinculoId: 'vinculo-001',
+          tenantId: 'tenant-001',
+          clienteId: 'tenant-001',
+          labUuid: 'lab-uuid-1',
+          expiresIn: '15m',
+          scope: 'integracao',
+        };
+      },
+      listPendingExams: async () => ({
+        page: 1,
+        limit: 20,
+        total: 0,
+        rows: [],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 0,
+        itens: [],
+      }),
+      sendResultado: async () => ({
+        duplicado: false,
+        resultadoId: 'res-1',
+      }),
+    },
+  });
+
+  assert.equal(result.successCount, 0);
+  assert.deepEqual(capturedTokenRequest, {
+    vinculoId: 'vinculo-001',
+    segredo: 'segredo-qa-salvo',
+  });
+});
+
+test('generateQaHmlAgendamentos usa o authSecret salvo no QA quando nao ha override explicito', async () => {
+  let capturedTokenRequest: any = null;
+
+  const result = await generateQaHmlAgendamentos({}, {
+    vinculoId: 'vinculo-001',
+    runtimeConfig: {
+      getResolvedSecrets: () => ({
+        authSecret: 'segredo-qa-salvo',
+        webhookSecret: 'webhook-qa-salvo',
+        authSecretSource: 'override',
+        webhookSecretSource: 'override',
+        updatedAt: '2026-03-31T12:00:00.000Z',
+      }),
+    },
+    apiClient: {
+      issueIntegrationToken: async params => {
+        capturedTokenRequest = params;
+        return {
+          token: 'jwt-integracao',
+          ambiente: 'hml',
+          operationEnv: 'hml',
+          vinculoId: 'vinculo-001',
+          tenantId: 'tenant-001',
+          clienteId: 'tenant-001',
+          labUuid: 'lab-uuid-1',
+          expiresIn: '15m',
+          scope: 'integracao',
+        };
+      },
+      listPendingExams: async () => ({
+        page: 1,
+        limit: 20,
+        total: 0,
+        rows: [],
+      }),
+      getPendingExamDetail: async () => ({
+        agendaExameId: 0,
+        itens: [],
+      }),
+      sendResultado: async () => ({
+        duplicado: false,
+        resultadoId: 'res-1',
+      }),
+      generateQaHmlBatch: async () => ({
+        vinculoId: 'vinculo-001',
+        tenantId: 'tenant-001',
+        tenantNome: 'Tenant QA',
+        ambiente: 'hml',
+        operationEnv: 'hml',
+        pendingBefore: 0,
+        cleanedAgendaExameIds: [],
+        generatedCount: 5,
+        rows: [],
+        createdAt: '2026-03-31T12:00:00.000Z',
+      }),
+    },
+  });
+
+  assert.equal(result.generatedCount, 5);
+  assert.deepEqual(capturedTokenRequest, {
+    vinculoId: 'vinculo-001',
+    segredo: 'segredo-qa-salvo',
+    ambienteOperacao: 'hml',
+  });
 });

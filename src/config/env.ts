@@ -14,10 +14,6 @@ if (result.error) {
   console.log(`[env] .env carregado de ${envPath}`);
 }
 
-if (!process.env.APP_ENV) {
-  process.env.APP_ENV = (process.env.NODE_ENV || 'development').toLowerCase();
-}
-
 function parsePositiveInt(value: string | undefined, fallbackValue: number) {
   const parsed = Number.parseInt(value || '', 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallbackValue;
@@ -45,11 +41,28 @@ function parseCsv(value: string | undefined) {
     .filter(Boolean);
 }
 
+function parseBasePath(value: string | undefined) {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed || trimmed === '/') {
+    return '';
+  }
+
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return withLeadingSlash.replace(/\/+$/, '');
+}
+
+function isTestRuntime() {
+  return process.execArgv.includes('--test')
+    || process.argv.includes('--test')
+    || process.argv.some(arg => /\.test\.(c|m)?[jt]s$/i.test(arg))
+    || Boolean(process.env.NODE_TEST_CONTEXT);
+}
+
 const env = {
   PORT: parsePositiveInt(process.env.PORT, 3001),
   NODE_ENV: process.env.NODE_ENV || 'development',
-  APP_ENV: process.env.APP_ENV || 'development',
   ALLOW_ORIGINS: parseCsv(process.env.ALLOW_ORIGINS),
+  PUBLIC_BASE_PATH: parseBasePath(process.env.PUBLIC_BASE_PATH),
   INTEGRALAB_API_BASE_URL: (process.env.INTEGRALAB_API_BASE_URL || 'http://localhost:3000').replace(/\/+$/, ''),
   LAB_APOIO_TENANT_ID: process.env.LAB_APOIO_TENANT_ID?.trim() || '',
   LAB_APOIO_VINCULO_ID: process.env.LAB_APOIO_VINCULO_ID?.trim() || '',
@@ -63,6 +76,7 @@ const env = {
   WEBHOOK_MAX_AGE_MS: parsePositiveInt(process.env.WEBHOOK_MAX_AGE_MS, 300000),
   AUTO_PROCESS_WEBHOOK: parseBoolean(process.env.AUTO_PROCESS_WEBHOOK, true),
   LAB_APOIO_SEND_INLINE_PDF: parseBoolean(process.env.LAB_APOIO_SEND_INLINE_PDF, false),
+  QA_STORAGE_DIR: process.env.QA_STORAGE_DIR?.trim() || '.runtime/qa-data',
 };
 
 const varsToCheck = [
@@ -71,7 +85,6 @@ const varsToCheck = [
   'LAB_APOIO_AUTH_SECRET',
   'LAB_APOIO_WEBHOOK_SECRET',
   'NODE_ENV',
-  'APP_ENV',
 ];
 
 for (const name of varsToCheck) {
@@ -79,19 +92,27 @@ for (const name of varsToCheck) {
   console.log(`[env] ${name}: ${status}`);
 }
 
-if ((env.NODE_ENV || 'development') === 'production') {
+if ((env.NODE_ENV || 'development') === 'production' && !isTestRuntime()) {
   const required = [
-    'INTEGRALAB_API_BASE_URL',
-    'LAB_APOIO_VINCULO_ID',
-    'LAB_APOIO_AUTH_SECRET',
-    'LAB_APOIO_WEBHOOK_SECRET',
-    'APP_ENV',
+      'INTEGRALAB_API_BASE_URL',
+      'LAB_APOIO_VINCULO_ID',
+      'LAB_APOIO_AUTH_SECRET',
+      'LAB_APOIO_WEBHOOK_SECRET',
   ].filter(name => !process.env[name]);
 
   if (required.length > 0) {
     console.error(`[env] Variaveis obrigatorias ausentes: ${required.join(', ')}`);
     process.exit(1);
   }
+}
+
+export function withPublicBasePath(targetPath: string) {
+  if (!targetPath) {
+    return env.PUBLIC_BASE_PATH || '/';
+  }
+
+  const normalizedTarget = targetPath.startsWith('/') ? targetPath : `/${targetPath}`;
+  return `${env.PUBLIC_BASE_PATH}${normalizedTarget}` || '/';
 }
 
 export default env;

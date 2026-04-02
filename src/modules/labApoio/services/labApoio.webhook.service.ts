@@ -3,6 +3,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 
 import env from '../../../config/env.js';
 import { LabApoioConsumerError } from './labApoio.consumer.errors.js';
+import { getLabApoioQaRuntimeConfig } from './labApoio.qa.runtime-config.js';
 import {
   labApoioWebhookPayloadSchema,
   type LabApoioWebhookPayload,
@@ -83,13 +84,13 @@ export function parseIncomingWebhook(params: {
   maxAgeMs?: number;
   now?: () => Date;
 }): ParsedIncomingWebhook {
-  const secret = params.secret ?? env.LAB_APOIO_WEBHOOK_SECRET;
+  const secret = params.secret ?? getLabApoioQaRuntimeConfig().getResolvedSecrets().webhookSecret;
 
   if (!secret) {
     throw new LabApoioConsumerError(
       500,
       'CONFIGURATION_ERROR',
-      'Configure LAB_APOIO_WEBHOOK_SECRET para validar o webhook.'
+      'Configure LAB_APOIO_WEBHOOK_SECRET no .env ou na tela pública de QA para validar o webhook.'
     );
   }
   if (!params.rawBody) {

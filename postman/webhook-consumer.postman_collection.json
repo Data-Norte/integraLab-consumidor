@@ -1,0 +1,716 @@
+{
+  "info": {
+    "_postman_id": "7dbd4338-9c50-4f54-ae78-2b7a2f9c8d66",
+    "name": "IntegraLab Lab Apoio - Local",
+    "description": "Collection para validar o fluxo local entre integraLab-api e integraLab-consumidor: healthchecks, token de integracao, leitura de pendencias, envio de resultado, processamento manual e webhook assinado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_base_url",
+      "value": "http://127.0.0.1:3000"
+    },
+    {
+      "key": "consumer_base_url",
+      "value": "http://127.0.0.1:3001"
+    },
+    {
+      "key": "ambiente",
+      "value": "hml"
+    },
+    {
+      "key": "pending_page",
+      "value": "1"
+    },
+    {
+      "key": "pending_limit",
+      "value": "20"
+    },
+    {
+      "key": "manual_limit",
+      "value": "20"
+    },
+    {
+      "key": "fornec_id",
+      "value": "77"
+    },
+    {
+      "key": "result_status",
+      "value": "CONCLUIDO"
+    },
+    {
+      "key": "result_observacao",
+      "value": "Resultado enviado via Postman"
+    },
+    {
+      "key": "sample_pdf_base64",
+      "value": "JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PgplbmRvYmo="
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Smoke",
+      "item": [
+        {
+          "name": "API Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('api online', function () {",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.service).to.eql('integralab-api');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{api_base_url}}/health",
+            "description": "Healthcheck basico da API."
+          },
+          "response": []
+        },
+        {
+          "name": "Consumer Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('consumer online', function () {",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.service).to.eql('integralab-consumidor');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{consumer_base_url}}/health",
+            "description": "Healthcheck raiz do consumidor."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - API Integracao",
+      "item": [
+        {
+          "name": "Emitir token de integracao",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const vinculoId = pm.variables.get('vinculo_id');",
+                  "const segredo = pm.variables.get('auth_secret');",
+                  "if (!vinculoId || !segredo || vinculoId.includes('{{') || segredo.includes('{{')) {",
+                  "  throw new Error('Preencha vinculo_id e auth_secret no environment antes desta request.');",
+                  "}",
+                  "pm.request.body.update(JSON.stringify({ vinculoId, segredo }, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('token emitido', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.environment.set('integration_token', body.data.token);",
+                  "pm.environment.set('tenant_id', body.data.tenantId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vinculoId\": \"{{vinculo_id}}\",\n  \"segredo\": \"{{auth_secret}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/auth/token",
+            "description": "Emite o JWT curto de integracao usado pela API e pelo consumidor."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar exames pendentes",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('integration_token')) {",
+                  "  throw new Error('Execute \"Emitir token de integracao\" antes desta request.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "const rows = body.data && Array.isArray(body.data.rows) ? body.data.rows : [];",
+                  "pm.test('consulta de pendencias ok', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data).to.be.an('object');",
+                  "});",
+                  "pm.environment.unset('agenda_exame_id');",
+                  "pm.environment.unset('agenda_exame_item_id');",
+                  "pm.environment.unset('codexame');",
+                  "pm.environment.unset('descricao_exame');",
+                  "pm.environment.set('pending_total', String(body.data.total || 0));",
+                  "if (rows.length === 0) {",
+                  "  throw new Error('Nenhum exame pendente retornado. Rode o seed da API ou gere novas pendencias antes de testar o envio de resultado.');",
+                  "}",
+                  "pm.environment.set('agenda_exame_id', String(rows[0].agendaExameId));",
+                  "pm.environment.set('agenda_exame_item_id', String(rows[0].agendaExameItemId));",
+                  "pm.environment.set('codexame', String(rows[0].codexame));",
+                  "pm.environment.set('descricao_exame', rows[0].descricaoExame || ('Exame ' + rows[0].codexame));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{integration_token}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              }
+            ],
+            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/pendentes?page={{pending_page}}&limit={{pending_limit}}",
+            "description": "Busca o primeiro lote de exames pendentes e armazena os ids do primeiro item nas variaveis do environment."
+          },
+          "response": []
+        },
+        {
+          "name": "Detalhar primeiro exame pendente",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('integration_token')) {",
+                  "  throw new Error('Execute \"Emitir token de integracao\" antes desta request.');",
+                  "}",
+                  "if (!pm.environment.get('agenda_exame_id')) {",
+                  "  throw new Error('Execute \"Listar exames pendentes\" antes desta request.');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('detalhe retornado', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{integration_token}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              }
+            ],
+            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}",
+            "description": "Consulta o detalhe do primeiro exame pendente retornado na request anterior."
+          },
+          "response": []
+        },
+        {
+          "name": "Enviar resultado estruturado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('integration_token')) {",
+                  "  throw new Error('Execute \"Emitir token de integracao\" antes desta request.');",
+                  "}",
+                  "if (!pm.environment.get('agenda_exame_id') || !pm.environment.get('agenda_exame_item_id') || !pm.environment.get('codexame')) {",
+                  "  throw new Error('Execute \"Listar exames pendentes\" antes desta request.');",
+                  "}",
+                  "const codexame = pm.environment.get('codexame');",
+                  "const descricao = pm.environment.get('descricao_exame') || ('Exame ' + codexame);",
+                  "const agendaExameItemId = Number(pm.environment.get('agenda_exame_item_id'));",
+                  "const codexameNumero = Number(codexame);",
+                  "if (!Number.isInteger(agendaExameItemId) || agendaExameItemId <= 0 || !Number.isInteger(codexameNumero) || codexameNumero <= 0) {",
+                  "  throw new Error('agenda_exame_item_id e codexame precisam ser numeros inteiros validos.');",
+                  "}",
+                  "pm.environment.set('descricao_exame', descricao);",
+                  "pm.environment.set('resultado_idempotency_key', 'resultado-' + Date.now());",
+                  "pm.environment.set('resultado_padrao', new Date().toISOString());",
+                  "pm.request.body.update(JSON.stringify({",
+                  "  agendaExameItemId,",
+                  "  codexame: codexameNumero,",
+                  "  idempotencyKey: pm.environment.get('resultado_idempotency_key'),",
+                  "  resultado: {",
+                  "    status: pm.variables.get('result_status') || 'CONCLUIDO',",
+                  "    observacao: pm.variables.get('result_observacao') || 'Resultado enviado via Postman',",
+                  "    liberado: true,",
+                  "    prejudicado: false,",
+                  "    parametros: [",
+                  "      {",
+                  "        descricao,",
+                  "        valor: '13.5',",
+                  "        unidade1: 'g/dL',",
+                  "        liberado: true,",
+                  "        prejudicado: false,",
+                  "        resultadoPadrao: pm.environment.get('resultado_padrao')",
+                  "      }",
+                  "    ]",
+                  "  }",
+                  "}, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('resultado aceito', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "});",
+                  "if (body.data && body.data.resultadoId) {",
+                  "  pm.environment.set('resultado_id', body.data.resultadoId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{integration_token}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agendaExameItemId\": {{agenda_exame_item_id}},\n  \"codexame\": {{codexame}},\n  \"idempotencyKey\": \"{{resultado_idempotency_key}}\",\n  \"resultado\": {\n    \"status\": \"{{result_status}}\",\n    \"observacao\": \"{{result_observacao}}\",\n    \"liberado\": true,\n    \"prejudicado\": false,\n    \"parametros\": [\n      {\n        \"descricao\": \"{{descricao_exame}}\",\n        \"valor\": \"13.5\",\n        \"unidade1\": \"g/dL\",\n        \"liberado\": true,\n        \"prejudicado\": false,\n        \"resultadoPadrao\": \"{{resultado_padrao}}\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}/resultado",
+            "description": "Envia um resultado estruturado diretamente para a API usando o primeiro exame pendente retornado."
+          },
+          "response": []
+        },
+        {
+          "name": "Enviar PDF avulso",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('integration_token')) {",
+                  "  throw new Error('Execute \"Emitir token de integracao\" antes desta request.');",
+                  "}",
+                  "if (!pm.environment.get('agenda_exame_id') || !pm.environment.get('agenda_exame_item_id') || !pm.environment.get('codexame')) {",
+                  "  throw new Error('Execute \"Listar exames pendentes\" antes desta request.');",
+                  "}",
+                  "const agendaExameItemId = Number(pm.environment.get('agenda_exame_item_id'));",
+                  "const codexame = Number(pm.environment.get('codexame'));",
+                  "const fornecId = Number(pm.variables.get('fornec_id') || '77');",
+                  "if (!Number.isInteger(agendaExameItemId) || agendaExameItemId <= 0 || !Number.isInteger(codexame) || codexame <= 0) {",
+                  "  throw new Error('agenda_exame_item_id e codexame precisam ser numeros inteiros validos.');",
+                  "}",
+                  "if (!Number.isInteger(fornecId) || fornecId <= 0) {",
+                  "  throw new Error('fornec_id precisa ser numero inteiro positivo.');",
+                  "}",
+                  "pm.environment.set('resultado_pdf_idempotency_key', 'pdf-' + Date.now());",
+                  "pm.environment.set('resultado_pdf_nome_arquivo', 'resultado-' + pm.environment.get('agenda_exame_id') + '-' + pm.environment.get('agenda_exame_item_id') + '.pdf');",
+                  "pm.request.body.update(JSON.stringify({",
+                  "  agendaExameItemId,",
+                  "  codexame,",
+                  "  idempotencyKey: pm.environment.get('resultado_pdf_idempotency_key'),",
+                  "  nomeArquivo: pm.environment.get('resultado_pdf_nome_arquivo'),",
+                  "  pdfBase64: pm.variables.get('sample_pdf_base64'),",
+                  "  fornecId",
+                  "}, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('pdf aceito', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{integration_token}}"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agendaExameItemId\": {{agenda_exame_item_id}},\n  \"codexame\": {{codexame}},\n  \"idempotencyKey\": \"{{resultado_pdf_idempotency_key}}\",\n  \"nomeArquivo\": \"{{resultado_pdf_nome_arquivo}}\",\n  \"pdfBase64\": \"{{sample_pdf_base64}}\",\n  \"fornecId\": {{fornec_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}/resultado/pdf",
+            "description": "Teste isolado do endpoint legado de PDF. Execute com um exame pendente valido."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Consumidor",
+      "item": [
+        {
+          "name": "Health do modulo consumidor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('modulo ok', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{consumer_base_url}}/api/lab-apoio/v1/consumer/health",
+            "description": "Health do modulo do consumidor."
+          },
+          "response": []
+        },
+        {
+          "name": "Processar pendentes manualmente",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tenantId = pm.variables.get('tenant_id');",
+                  "const limitValue = pm.variables.get('manual_limit') || '20';",
+                  "const limit = Number.parseInt(String(limitValue), 10);",
+                  "if (!tenantId || tenantId.includes('{{')) {",
+                  "  throw new Error('Preencha tenant_id no environment antes desta request.');",
+                  "}",
+                  "if (!Number.isInteger(limit) || limit <= 0) {",
+                  "  throw new Error('manual_limit precisa ser numero inteiro positivo.');",
+                  "}",
+                  "pm.request.body.update(JSON.stringify({ tenantId, limit }, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('processamento manual executado', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{tenant_id}}\",\n  \"limit\": {{manual_limit}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{consumer_base_url}}/api/lab-apoio/v1/consumer/processar-pendentes",
+            "description": "Faz o consumidor emitir token na API, buscar pendencias e devolver resultados fake."
+          },
+          "response": []
+        },
+        {
+          "name": "Webhook de status assinado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const secret = pm.environment.get('webhook_secret');",
+                  "const tenantId = pm.environment.get('tenant_id');",
+                  "const vinculoId = pm.environment.get('vinculo_id');",
+                  "if (!secret || !tenantId || !vinculoId) {",
+                  "  throw new Error('Preencha webhook_secret, tenant_id e vinculo_id no environment antes desta request.');",
+                  "}",
+                  "const now = new Date().toISOString();",
+                  "const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();",
+                  "const eventId = 'status-' + Date.now();",
+                  "pm.environment.set('webhook_generated_at', now);",
+                  "pm.environment.set('webhook_timestamp', now);",
+                  "pm.environment.set('webhook_event_id', eventId);",
+                  "pm.environment.set('status_period_from', oneHourAgo);",
+                  "const resolvedBody = pm.variables.replaceIn(pm.request.body.raw);",
+                  "const signedContent = now + '.' + eventId + '.' + resolvedBody;",
+                  "const signature = CryptoJS.HmacSHA256(signedContent, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.environment.set('webhook_signature', signature);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 202', function () { pm.response.to.have.status(202); });",
+                  "const body = pm.response.json();",
+                  "pm.test('status webhook aceito', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.event).to.eql('LAB_APOIO_STATUS_SYNC');",
+                  "  pm.expect(body.data.autoProcessed).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              },
+              {
+                "key": "x-lab-vinculo-id",
+                "value": "{{vinculo_id}}"
+              },
+              {
+                "key": "x-lab-event-id",
+                "value": "{{webhook_event_id}}"
+              },
+              {
+                "key": "x-lab-timestamp",
+                "value": "{{webhook_timestamp}}"
+              },
+              {
+                "key": "x-lab-signature",
+                "value": "{{webhook_signature}}"
+              },
+              {
+                "key": "x-lab-signature-alg",
+                "value": "sha256"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"LAB_APOIO_STATUS_SYNC\",\n  \"eventId\": \"{{webhook_event_id}}\",\n  \"generatedAt\": \"{{webhook_generated_at}}\",\n  \"period\": {\n    \"from\": \"{{status_period_from}}\",\n    \"to\": \"{{webhook_generated_at}}\",\n    \"sinceHours\": 1\n  },\n  \"tenant\": {\n    \"id\": \"{{tenant_id}}\",\n    \"nome\": \"Tenant seed local\"\n  },\n  \"vinculo\": {\n    \"id\": \"{{vinculo_id}}\",\n    \"laboratorio\": \"Consumidor Postman\"\n  },\n  \"metricas\": {\n    \"total\": 1,\n    \"processados\": 1,\n    \"erros\": 0,\n    \"resultadoJson\": 1,\n    \"resultadoPdf\": 0,\n    \"ultimoRecebimento\": null,\n    \"ultimoProcessamento\": null\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{consumer_base_url}}/api/lab-apoio/v1/consumer/webhook",
+            "description": "Valida assinatura e contrato do webhook sem disparar auto processamento. Bom para smoke test do consumidor isolado."
+          },
+          "response": []
+        },
+        {
+          "name": "Webhook assinado para o consumidor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const secret = pm.environment.get('webhook_secret');",
+                  "const tenantId = pm.environment.get('tenant_id');",
+                  "const vinculoId = pm.environment.get('vinculo_id');",
+                  "if (!secret || !tenantId || !vinculoId) {",
+                  "  throw new Error('Preencha webhook_secret, tenant_id e vinculo_id no environment antes desta request.');",
+                  "}",
+                  "const now = new Date().toISOString();",
+                  "const eventId = 'evt-' + Date.now();",
+                  "pm.environment.set('webhook_generated_at', now);",
+                  "pm.environment.set('webhook_timestamp', now);",
+                  "pm.environment.set('webhook_event_id', eventId);",
+                  "const resolvedBody = pm.variables.replaceIn(pm.request.body.raw);",
+                  "const signedContent = now + '.' + eventId + '.' + resolvedBody;",
+                  "const signature = CryptoJS.HmacSHA256(signedContent, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.environment.set('webhook_signature', signature);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 202', function () { pm.response.to.have.status(202); });",
+                  "const body = pm.response.json();",
+                  "pm.test('webhook aceito', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.event).to.eql('LAB_APOIO_EXAMES_DISPONIVEIS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenant_id}}"
+              },
+              {
+                "key": "x-lab-vinculo-id",
+                "value": "{{vinculo_id}}"
+              },
+              {
+                "key": "x-lab-event-id",
+                "value": "{{webhook_event_id}}"
+              },
+              {
+                "key": "x-lab-timestamp",
+                "value": "{{webhook_timestamp}}"
+              },
+              {
+                "key": "x-lab-signature",
+                "value": "{{webhook_signature}}"
+              },
+              {
+                "key": "x-lab-signature-alg",
+                "value": "sha256"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"LAB_APOIO_EXAMES_DISPONIVEIS\",\n  \"eventId\": \"{{webhook_event_id}}\",\n  \"generatedAt\": \"{{webhook_generated_at}}\",\n  \"ambiente\": \"{{ambiente}}\",\n  \"tenant\": {\n    \"id\": \"{{tenant_id}}\",\n    \"nome\": \"Tenant seed local\"\n  },\n  \"vinculo\": {\n    \"id\": \"{{vinculo_id}}\"\n  },\n  \"laboratorio\": {\n    \"nome\": \"Consumidor Postman\",\n    \"labUuid\": \"LAB-UUID-POSTMAN\"\n  },\n  \"pendencias\": {\n    \"totalAtendimentosPendentes\": 1,\n    \"totalItensPendentes\": 1\n  },\n  \"links\": {\n    \"pendentes\": \"/api/lab-apoio/v1/integracao/exames/pendentes\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{consumer_base_url}}/api/lab-apoio/v1/consumer/webhook",
+            "description": "Dispara manualmente um webhook valido com assinatura HMAC, no mesmo formato esperado do integraLab-api."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

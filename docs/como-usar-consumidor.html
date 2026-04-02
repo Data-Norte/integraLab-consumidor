@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IntegraLab Consumidor - Como usar</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --surface: rgba(255, 250, 240, 0.96);
+      --surface-strong: rgba(247, 236, 216, 0.96);
+      --text: #1f2522;
+      --muted: #53605a;
+      --accent: #0d5c63;
+      --accent-strong: #0a3f44;
+      --border: #d8c9ad;
+      --code-bg: rgba(31, 45, 47, 0.08);
+      --shadow: 0 18px 45px rgba(31, 37, 34, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(13, 92, 99, 0.18), transparent 26%),
+        linear-gradient(180deg, #efe3cb 0%, var(--bg) 35%, #efe8dc 100%);
+      line-height: 1.6;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: Georgia, "Times New Roman", serif;
+      letter-spacing: 0.02em;
+    }
+
+    .hero {
+      padding: 56px 24px 28px;
+    }
+
+    .hero-inner,
+    .content,
+    .footer {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(13, 92, 99, 0.12);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 16px 0 12px;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 1.05;
+      max-width: 850px;
+    }
+
+    .lead {
+      max-width: 760px;
+      font-size: 18px;
+      color: var(--muted);
+    }
+
+    .content {
+      display: grid;
+      gap: 20px;
+      padding: 0 0 48px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--surface), var(--surface-strong));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .mini {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(216, 201, 173, 0.9);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    pre {
+      margin: 12px 0 0;
+      padding: 16px;
+      overflow: auto;
+      border-radius: 16px;
+      background: #162022;
+      color: #f2efe8;
+      border: 1px solid rgba(216, 201, 173, 0.25);
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 0 22px;
+      padding: 0;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(13, 92, 99, 0.09);
+      color: var(--accent-strong);
+    }
+
+    .footer {
+      padding: 0 0 40px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="eyebrow">IntegraLab Consumidor</span>
+      <h1>Guia para subir, testar e validar o consumidor localmente</h1>
+      <p class="lead">
+        Este consumidor recebe webhooks assinados do <code>integraLab-api</code>, solicita as pendencias pela rota de integracao,
+        processa os exames e envia o resultado de volta para a API. O projeto ja esta preparado para o ambiente local seedado.
+      </p>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="card">
+      <h2>Arquivos principais</h2>
+      <div class="grid">
+        <div class="mini">
+          <strong>Inicializacao local</strong>
+          <p>Use <code>iniciar-consumidor-teste.cmd</code> para subir o projeto em modo de teste no Windows.</p>
+        </div>
+        <div class="mini">
+          <strong>Configuracao</strong>
+          <p>O ambiente local fica em <code>.env</code>. O modelo versionado fica em <code>.env.example</code>.</p>
+        </div>
+        <div class="mini">
+          <strong>Servidor</strong>
+          <p>O ponto de entrada da aplicacao e <code>src/server.ts</code> com launcher em <code>src/server.launch.mjs</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Pre-requisitos</h2>
+      <ul>
+        <li>Node.js instalado.</li>
+        <li>Dependencias do projeto instaladas com <code>npm install</code>.</li>
+        <li><code>integraLab-api</code> em execucao na porta configurada no <code>.env</code> do consumidor.</li>
+        <li>Bancos de dados localmente acessiveis, caso o fluxo da API precise consultar pendencias reais.</li>
+      </ul>
+      <div class="callout">
+        O launcher de teste valida a existencia do arquivo <code>.env</code> antes de iniciar o servidor.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Como iniciar</h2>
+      <h3>Opcao recomendada no Windows</h3>
+      <pre><code>iniciar-consumidor-teste.cmd</code></pre>
+
+      <h3>Opcao por linha de comando</h3>
+      <pre><code>npm run start:test</code></pre>
+
+      <h3>Build e start de producao local</h3>
+      <pre><code>npm run build
+npm start</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Endpoints disponiveis</h2>
+      <div class="grid">
+        <div class="mini">
+          <strong>Healthcheck</strong>
+          <pre><code>GET /health</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Health do modulo</strong>
+          <pre><code>GET /api/lab-apoio/v1/consumer/health</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Webhook da API</strong>
+          <pre><code>POST /api/lab-apoio/v1/consumer/webhook</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Disparo manual</strong>
+          <pre><code>POST /api/lab-apoio/v1/consumer/processar-pendentes</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Painel publico QA</strong>
+          <pre><code>GET /qa</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Resumo QA</strong>
+          <pre><code>GET /api/lab-apoio/v1/consumer/qa/overview</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Detalhe do item QA</strong>
+          <pre><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Arquivos do item QA</strong>
+          <pre><code>GET /api/lab-apoio/v1/consumer/qa/itens/:itemId/arquivos/:kind</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Arquivos da execucao QA</strong>
+          <pre><code>GET /api/lab-apoio/v1/consumer/qa/runs/:runId/arquivos/:kind</code></pre>
+        </div>
+        <div class="mini">
+          <strong>Limpeza do storage QA</strong>
+          <pre><code>DELETE /api/lab-apoio/v1/consumer/qa/storage</code></pre>
+        </div>
+      </div>
+      <div class="callout">
+        Endpoints da API QA: <code>:kind</code> aceita <code>entrada</code>, <code>saida</code>, <code>resultado</code>, <code>resposta</code> e <code>pdf</code> para itens,
+        e <code>contexto</code>, <code>webhook</code> e <code>resumo</code> para execucoes.
+      </div>
+      <div class="callout">
+        Se o consumidor estiver publicado atras de proxy por caminho, configure <code>PUBLIC_BASE_PATH=/consumidor</code>.
+        Nesse modo a tela publica responde tambem em <code>/consumidor/qa</code>.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Fluxo de teste recomendado</h2>
+      <ol>
+        <li>Suba o <code>integraLab-api</code>.</li>
+        <li>Suba o consumidor com <code>iniciar-consumidor-teste.cmd</code> ou <code>npm run start:test</code>.</li>
+        <li>Valide o healthcheck do consumidor.</li>
+        <li>Dispare o processamento manual para consumir as pendencias existentes.</li>
+        <li>Opcionalmente valide o webhook automatico apontando o vinculo da API para a URL do consumidor.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Smoke tests em PowerShell</h2>
+      <h3>1. Verificar se o consumidor esta online</h3>
+      <pre><code>Invoke-RestMethod -Method Get `
+  -Uri 'http://localhost:3001/health'</code></pre>
+
+      <h3>2. Disparar processamento manual das pendencias</h3>
+      <pre><code>Invoke-RestMethod -Method Post `
+  -Uri 'http://localhost:3001/api/lab-apoio/v1/consumer/processar-pendentes' `
+  -ContentType 'application/json' `
+  -Body '{}'</code></pre>
+
+      <h3>3. Consultar o health do modulo do consumidor</h3>
+      <pre><code>Invoke-RestMethod -Method Get `
+  -Uri 'http://localhost:3001/api/lab-apoio/v1/consumer/health'</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Variaveis importantes</h2>
+      <ul>
+        <li><code>INTEGRALAB_API_BASE_URL</code>: URL base da API.</li>
+        <li><code>LAB_APOIO_TENANT_ID</code>: tenant usado para busca de pendencias.</li>
+        <li><code>LAB_APOIO_VINCULO_ID</code>: vinculo de integracao da conta de laboratorio.</li>
+        <li><code>LAB_APOIO_AUTH_SECRET</code>: segredo usado para emitir o JWT de integracao.</li>
+        <li><code>LAB_APOIO_WEBHOOK_SECRET</code>: segredo HMAC para validar o webhook.</li>
+        <li><code>PUBLIC_BASE_PATH</code>: prefixo publico opcional, como <code>/consumidor</code>, para publicar o app atras de proxy por caminho.</li>
+        <li><code>LAB_APOIO_SEND_INLINE_PDF</code>: quando <code>false</code>, envia so resultado estruturado.</li>
+        <li><code>AUTO_PROCESS_WEBHOOK</code>: quando <code>true</code>, processa pendencias ao receber webhook de exames disponiveis.</li>
+        <li><code>QA_STORAGE_DIR</code>: diretorio local onde o SQLite e os arquivos por tenant ficam salvos.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Comandos uteis</h2>
+      <pre><code>npm test
+npm run build
+npm run dev
+npm run start:test</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Observacoes operacionais</h2>
+      <ul>
+        <li>O consumidor local esta preparado para processar as pendencias seedadas no ambiente atual.</li>
+        <li>Por padrao, o envio de PDF inline esta desabilitado no ambiente local para evitar dependencia de parametros adicionais do Macro.</li>
+        <li>Se voce reexecutar o seed da API, o <code>authSecret</code> e o <code>webhookSecret</code> podem ser rotacionados. Nesse caso o <code>.env</code> do consumidor precisa ser atualizado.</li>
+        <li>A tela <code>/qa</code> fica publica para QA e permite limpar os arquivos gerados localmente.</li>
+        <li>Com <code>PUBLIC_BASE_PATH=/consumidor</code>, as rotas publicas passam a responder tambem com o prefixo <code>/consumidor</code>.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Documento gerado para o projeto <code>integraLab-consumidor</code>.
+  </footer>
+</body>
+</html>
