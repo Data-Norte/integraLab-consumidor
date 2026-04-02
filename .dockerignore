@@ -1,0 +1,9 @@
+.git
+.github
+.idea
+.runtime
+deploy sh
+dist
+node_modules
+*.log
+.env

@@ -1,0 +1,35 @@
+name: Deploy Test Stack
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-integralab-consumidor-master
+      cancel-in-progress: false
+    steps:
+      - name: Deploy consumidor via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            WORKSPACE_ROOT="${{ secrets.DEPLOY_WORKSPACE_ROOT }}"
+            mkdir -p "$WORKSPACE_ROOT"
+            if [ ! -d "$WORKSPACE_ROOT/integraLab-api/.git" ]; then
+              git clone git@github.com:Data-Norte/integraLab-api.git "$WORKSPACE_ROOT/integraLab-api"
+            fi
+            cd "$WORKSPACE_ROOT/integraLab-api"
+            git fetch origin --prune
+            git checkout master
+            git pull --ff-only origin master
+            bash deploy/docker-stack/scripts/deploy-service.sh consumidor
