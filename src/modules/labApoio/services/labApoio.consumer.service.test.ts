@@ -54,6 +54,8 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
             total: 2,
             rows: [
               {
+                idEnvio: '11111111-1111-4111-8111-111111111111',
+                idEnvioExame: '22222222-2222-4222-8222-222222222222',
                 agendaExameId: 100,
                 agendaExameItemId: 200,
                 codexame: 300,
@@ -63,6 +65,8 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
                 pacienteId: 1,
               },
               {
+                idEnvio: '33333333-3333-4333-8333-333333333333',
+                idEnvioExame: '44444444-4444-4444-8444-444444444444',
                 agendaExameId: 101,
                 agendaExameItemId: 201,
                 codexame: 301,
@@ -86,6 +90,12 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
         agendaExameId,
         itens: [
           {
+            idEnvio: agendaExameId === 100
+              ? '11111111-1111-4111-8111-111111111111'
+              : '33333333-3333-4333-8333-333333333333',
+            idEnvioExame: agendaExameId === 100
+              ? '22222222-2222-4222-8222-222222222222'
+              : '44444444-4444-4444-8444-444444444444',
             agendaExameItemId: agendaExameId === 100 ? 200 : 201,
             codexame: agendaExameId === 100 ? 300 : 301,
             descricaoExame: agendaExameId === 100 ? 'Hemoglobina' : 'Glicemia',
@@ -115,7 +125,11 @@ test('processPendingExams consome pendencias e envia resultado inline com pdf', 
   });
   assert.equal(result.ambiente, 'prd');
   assert.equal(sentPayloads.length, 2);
+  assert.equal(sentPayloads[0].idEnvio, '11111111-1111-4111-8111-111111111111');
+  assert.equal(sentPayloads[0].idEnvioExame, '22222222-2222-4222-8222-222222222222');
   assert.equal(sentPayloads[0].idempotencyKey, 'resultado-100-200');
+  assert.equal(sentPayloads[0].pdf.idEnvio, '11111111-1111-4111-8111-111111111111');
+  assert.equal(sentPayloads[0].pdf.idEnvioExame, '22222222-2222-4222-8222-222222222222');
   assert.equal(sentPayloads[0].pdf.idempotencyKey, 'pdf-100-200');
   assert.equal(sentPayloads[0].pdf.fornecId, 77);
   assert.equal(sentPayloads[0].pdf.nomeArquivo, 'resultado-100-200.pdf');
@@ -151,6 +165,8 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
         total: 1,
         rows: [
           {
+            idEnvio: '11111111-1111-4111-8111-111111111111',
+            idEnvioExame: '22222222-2222-4222-8222-222222222222',
             agendaExameId: 100,
             agendaExameItemId: 200,
             codexame: 300,
@@ -165,6 +181,8 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
         agendaExameId: 100,
         itens: [
           {
+            idEnvio: '11111111-1111-4111-8111-111111111111',
+            idEnvioExame: '22222222-2222-4222-8222-222222222222',
             agendaExameItemId: 200,
             codexame: 300,
             descricaoExame: 'Hemoglobina',
@@ -185,6 +203,8 @@ test('processPendingExams envia apenas resultado estruturado quando pdf inline e
   });
 
   assert.equal(result.successCount, 1);
+  assert.equal(sentPayloads[0].idEnvio, '11111111-1111-4111-8111-111111111111');
+  assert.equal(sentPayloads[0].idEnvioExame, '22222222-2222-4222-8222-222222222222');
   assert.equal(sentPayloads[0].pdf, undefined);
 });
 
@@ -216,6 +236,8 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
         total: 1,
         rows: [
           {
+            idEnvio: '11111111-1111-4111-8111-111111111111',
+            idEnvioExame: '22222222-2222-4222-8222-222222222222',
             agendaExameId: 100,
             agendaExameItemId: 200,
             codexame: 300,
@@ -230,6 +252,8 @@ test('processPendingExams encerra quando o lote retorna apenas itens ja tentados
         agendaExameId: 100,
         itens: [
           {
+            idEnvio: '11111111-1111-4111-8111-111111111111',
+            idEnvioExame: '22222222-2222-4222-8222-222222222222',
             agendaExameItemId: 200,
             codexame: 300,
             descricaoExame: 'Hemoglobina',

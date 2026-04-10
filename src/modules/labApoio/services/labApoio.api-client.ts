@@ -18,11 +18,15 @@ import {
 import { LabApoioConsumerError, toErrorMessage } from './labApoio.consumer.errors.js';
 
 export type SendResultadoPayload = {
+  idEnvio?: string;
+  idEnvioExame?: string;
   agendaExameItemId: number;
   codexame: number;
   idempotencyKey: string;
   resultado: unknown;
   pdf?: {
+    idEnvio?: string;
+    idEnvioExame?: string;
     idempotencyKey?: string;
     nomeArquivo: string;
     pdfBase64: string;

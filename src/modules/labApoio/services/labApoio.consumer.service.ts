@@ -136,6 +136,15 @@ function buildExamDetailSnapshot(exam: PendingExam, detail: PendingExamDetail | 
   };
 }
 
+function resolveCorrelationIds(exam: PendingExam, detail: PendingExamDetail | null) {
+  const detailItem = detail?.itens.find(item => item.agendaExameItemId === exam.agendaExameItemId);
+
+  return {
+    idEnvio: detailItem?.idEnvio ?? exam.idEnvio,
+    idEnvioExame: detailItem?.idEnvioExame ?? exam.idEnvioExame,
+  };
+}
+
 export async function processPendingExams(
   params: ProcessPendingExamsParams,
   deps: ProcessPendingExamsDeps = {}
@@ -241,14 +250,19 @@ export async function processPendingExams(
         examDetail: detail,
         now,
       });
+      const correlationIds = resolveCorrelationIds(exam, detail);
 
       const payload = {
+        idEnvio: correlationIds.idEnvio,
+        idEnvioExame: correlationIds.idEnvioExame,
         agendaExameItemId: exam.agendaExameItemId,
         codexame: exam.codexame,
         idempotencyKey: buildIdempotencyKey('resultado', exam),
         resultado: generated.result,
         pdf: services.sendInlinePdf
           ? {
+            idEnvio: correlationIds.idEnvio,
+            idEnvioExame: correlationIds.idEnvioExame,
             idempotencyKey: buildIdempotencyKey('pdf', exam),
             nomeArquivo: generated.pdfFileName,
             pdfBase64: generated.pdfBase64,

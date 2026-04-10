@@ -38,6 +38,8 @@ export const integrationTokenDataSchema = z.object({
 });
 
 export const pendingExamSchema = z.object({
+  idEnvio: z.string().uuid().optional(),
+  idEnvioExame: z.string().uuid().optional(),
   agendaExameItemId: z.number().int().positive(),
   agendaExameId: z.number().int().positive(),
   codexame: z.number().int().positive(),
@@ -55,6 +57,8 @@ export const pendingExamsDataSchema = z.object({
 });
 
 export const pendingExamDetailItemSchema = z.object({
+  idEnvio: z.string().uuid().optional(),
+  idEnvioExame: z.string().uuid().optional(),
   agendaExameItemId: z.number().int().positive(),
   codexame: z.number().int().positive(),
   descricaoExame: z.string().nullish(),

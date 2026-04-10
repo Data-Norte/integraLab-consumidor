@@ -84,6 +84,8 @@ test('LabApoioApiClient envia headers de tenant e bearer para listar pendencias'
         total: 1,
         rows: [
           {
+            idEnvio: '11111111-1111-4111-8111-111111111111',
+            idEnvioExame: '22222222-2222-4222-8222-222222222222',
             agendaExameId: 100,
             agendaExameItemId: 200,
             codexame: 300,
@@ -108,6 +110,8 @@ test('LabApoioApiClient envia headers de tenant e bearer para listar pendencias'
 
     assert.equal(rows.total, 1);
     assert.equal(rows.rows[0].agendaExameItemId, 200);
+    assert.equal(rows.rows[0].idEnvio, '11111111-1111-4111-8111-111111111111');
+    assert.equal(rows.rows[0].idEnvioExame, '22222222-2222-4222-8222-222222222222');
   });
 });
 
@@ -124,6 +128,8 @@ test('LabApoioApiClient consulta o detalhe do exame pendente', async () => {
         agendaExameId: 100,
         itens: [
           {
+            idEnvio: '11111111-1111-4111-8111-111111111111',
+            idEnvioExame: '22222222-2222-4222-8222-222222222222',
             agendaExameItemId: 200,
             codexame: 300,
             descricaoExame: 'Hemoglobina',
@@ -148,6 +154,8 @@ test('LabApoioApiClient consulta o detalhe do exame pendente', async () => {
     });
 
     assert.equal(detail.itens[0].agendaExameItemId, 200);
+    assert.equal(detail.itens[0].idEnvio, '11111111-1111-4111-8111-111111111111');
+    assert.equal(detail.itens[0].idEnvioExame, '22222222-2222-4222-8222-222222222222');
   });
 });
 
