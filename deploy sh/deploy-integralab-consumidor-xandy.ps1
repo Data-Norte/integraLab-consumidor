@@ -73,13 +73,14 @@ function Invoke-Local([string]$FilePath, [string[]]$Arguments, [string]$WorkingD
 }
 
 function Invoke-Remote([string]$PlinkPath, [string]$RemoteHost, [string]$RemoteUser, [string]$Secret, [string]$CommandText) {
+  $normalizedCommandText = $CommandText -replace "`r", ''
   $arguments = @(
     '-ssh',
     '-batch',
     '-pw',
     $Secret,
     "$RemoteUser@$RemoteHost",
-    $CommandText
+    $normalizedCommandText
   )
 
   return Invoke-Local $PlinkPath $arguments $repoRoot
