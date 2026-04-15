@@ -212,7 +212,7 @@ echo PRECHECK_OK
   ) $repoRoot | Out-Null
 
   $remoteDeploy = @"
-set -euo pipefail
+set -eu
 REMOTE_DIR='$RemoteDir'
 REMOTE_ARCHIVE='$remoteArchivePath'
 STAGE_DIR='$stageDir'
