@@ -157,7 +157,7 @@
                 }
               }
             },
-            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/auth/token",
+            "url": "{{api_base_url}}/lab-apoio/v1/integracao/auth/token",
             "description": "Emite o JWT curto de integracao usado pela API e pelo consumidor."
           },
           "response": []
@@ -216,7 +216,7 @@
                 "value": "{{tenant_id}}"
               }
             ],
-            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/pendentes?page={{pending_page}}&limit={{pending_limit}}",
+            "url": "{{api_base_url}}/lab-apoio/v1/integracao/exames/pendentes?page={{pending_page}}&limit={{pending_limit}}",
             "description": "Busca o primeiro lote de exames pendentes e armazena os ids do primeiro item nas variaveis do environment."
           },
           "response": []
@@ -265,7 +265,7 @@
                 "value": "{{tenant_id}}"
               }
             ],
-            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}",
+            "url": "{{api_base_url}}/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}",
             "description": "Consulta o detalhe do primeiro exame pendente retornado na request anterior."
           },
           "response": []
@@ -360,7 +360,7 @@
                 }
               }
             },
-            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}/resultado",
+            "url": "{{api_base_url}}/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}/resultado",
             "description": "Envia um resultado estruturado diretamente para a API usando o primeiro exame pendente retornado."
           },
           "response": []
@@ -440,7 +440,7 @@
                 }
               }
             },
-            "url": "{{api_base_url}}/api/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}/resultado/pdf",
+            "url": "{{api_base_url}}/lab-apoio/v1/integracao/exames/{{agenda_exame_id}}/resultado/pdf",
             "description": "Teste isolado do endpoint legado de PDF. Execute com um exame pendente valido."
           },
           "response": []
@@ -698,7 +698,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"LAB_APOIO_EXAMES_DISPONIVEIS\",\n  \"eventId\": \"{{webhook_event_id}}\",\n  \"generatedAt\": \"{{webhook_generated_at}}\",\n  \"ambiente\": \"{{ambiente}}\",\n  \"tenant\": {\n    \"id\": \"{{tenant_id}}\",\n    \"nome\": \"Tenant seed local\"\n  },\n  \"vinculo\": {\n    \"id\": \"{{vinculo_id}}\"\n  },\n  \"laboratorio\": {\n    \"nome\": \"Consumidor Postman\",\n    \"labUuid\": \"LAB-UUID-POSTMAN\"\n  },\n  \"pendencias\": {\n    \"totalAtendimentosPendentes\": 1,\n    \"totalItensPendentes\": 1\n  },\n  \"links\": {\n    \"pendentes\": \"/api/lab-apoio/v1/integracao/exames/pendentes\"\n  }\n}",
+              "raw": "{\n  \"event\": \"LAB_APOIO_EXAMES_DISPONIVEIS\",\n  \"eventId\": \"{{webhook_event_id}}\",\n  \"generatedAt\": \"{{webhook_generated_at}}\",\n  \"ambiente\": \"{{ambiente}}\",\n  \"tenant\": {\n    \"id\": \"{{tenant_id}}\",\n    \"nome\": \"Tenant seed local\"\n  },\n  \"vinculo\": {\n    \"id\": \"{{vinculo_id}}\"\n  },\n  \"laboratorio\": {\n    \"nome\": \"Consumidor Postman\",\n    \"labUuid\": \"LAB-UUID-POSTMAN\"\n  },\n  \"pendencias\": {\n    \"totalAtendimentosPendentes\": 1,\n    \"totalItensPendentes\": 1\n  },\n  \"links\": {\n    \"pendentes\": \"/lab-apoio/v1/integracao/exames/pendentes\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

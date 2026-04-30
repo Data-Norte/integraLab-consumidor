@@ -28,7 +28,7 @@ test('parseIncomingWebhook valida assinatura e retorna payload tipado', () => {
       totalItensPendentes: 3,
     },
     links: {
-      pendentes: '/api/lab-apoio/v1/integracao/exames/pendentes',
+      pendentes: '/lab-apoio/v1/integracao/exames/pendentes',
     },
   };
 
@@ -77,7 +77,7 @@ test('parseIncomingWebhook rejeita assinatura invalida', () => {
       totalItensPendentes: 3,
     },
     links: {
-      pendentes: '/api/lab-apoio/v1/integracao/exames/pendentes',
+      pendentes: '/lab-apoio/v1/integracao/exames/pendentes',
     },
   };
 

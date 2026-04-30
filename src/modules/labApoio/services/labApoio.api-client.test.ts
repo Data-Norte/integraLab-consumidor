@@ -31,7 +31,7 @@ test('LabApoioApiClient envia credenciais de integracao para a API', async () =>
     });
     req.on('end', () => {
       assert.equal(req.method, 'POST');
-      assert.equal(req.url, '/api/lab-apoio/v1/integracao/auth/token');
+      assert.equal(req.url, '/lab-apoio/v1/integracao/auth/token');
       assert.deepEqual(JSON.parse(body), {
         vinculoId: 'vinculo-001',
         segredo: 'segredo-abc',
@@ -71,7 +71,7 @@ test('LabApoioApiClient envia credenciais de integracao para a API', async () =>
 
 test('LabApoioApiClient envia headers de tenant e bearer para listar pendencias', async () => {
   await withHttpServer((req, res) => {
-    assert.match(req.url || '', /\/api\/lab-apoio\/v1\/integracao\/exames\/pendentes/);
+    assert.match(req.url || '', /\/lab-apoio\/v1\/integracao\/exames\/pendentes/);
     assert.equal(req.headers.authorization, 'Bearer jwt');
     assert.equal(req.headers['x-tenant-id'], 'tenant-001');
 
@@ -113,7 +113,7 @@ test('LabApoioApiClient envia headers de tenant e bearer para listar pendencias'
 
 test('LabApoioApiClient consulta o detalhe do exame pendente', async () => {
   await withHttpServer((req, res) => {
-    assert.equal(req.url, '/api/lab-apoio/v1/integracao/exames/100');
+    assert.equal(req.url, '/lab-apoio/v1/integracao/exames/100');
     assert.equal(req.headers.authorization, 'Bearer jwt');
     assert.equal(req.headers['x-tenant-id'], 'tenant-001');
 
@@ -154,7 +154,7 @@ test('LabApoioApiClient consulta o detalhe do exame pendente', async () => {
 test('LabApoioApiClient gera lote QA HML com bearer token', async () => {
   await withHttpServer((req, res) => {
     assert.equal(req.method, 'POST');
-    assert.equal(req.url, '/api/lab-apoio/v1/integracao/qa/hml/agendamentos');
+    assert.equal(req.url, '/lab-apoio/v1/integracao/qa/hml/agendamentos');
     assert.equal(req.headers.authorization, 'Bearer jwt');
     assert.equal(req.headers['x-tenant-id'], 'tenant-001');
 

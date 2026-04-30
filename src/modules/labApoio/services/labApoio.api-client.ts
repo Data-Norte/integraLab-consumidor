@@ -81,7 +81,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   }) {
     try {
       const response = await this.http.post(
-        '/api/lab-apoio/v1/integracao/auth/token',
+        '/lab-apoio/v1/integracao/auth/token',
         {
           vinculoId: params.vinculoId,
           segredo: params.segredo,
@@ -104,7 +104,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   }) {
     try {
       const response = await this.http.get(
-        '/api/lab-apoio/v1/integracao/exames/pendentes',
+        '/lab-apoio/v1/integracao/exames/pendentes',
         {
           params: {
             page: params.page ?? 1,
@@ -131,7 +131,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   }) {
     try {
       const response = await this.http.get(
-        `/api/lab-apoio/v1/integracao/exames/${params.agendaExameId}`,
+        `/lab-apoio/v1/integracao/exames/${params.agendaExameId}`,
         {
           headers: {
             Authorization: `Bearer ${params.token}`,
@@ -155,7 +155,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   }) {
     try {
       const response = await this.http.post(
-        `/api/lab-apoio/v1/integracao/exames/${params.agendaExameId}/resultado`,
+        `/lab-apoio/v1/integracao/exames/${params.agendaExameId}/resultado`,
         params.payload,
         {
           headers: {
@@ -178,7 +178,7 @@ export class LabApoioApiClient implements LabApoioApiClientLike {
   }) {
     try {
       const response = await this.http.post(
-        '/api/lab-apoio/v1/integracao/qa/hml/agendamentos',
+        '/lab-apoio/v1/integracao/qa/hml/agendamentos',
         {},
         {
           headers: {
