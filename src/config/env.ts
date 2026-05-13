@@ -63,7 +63,7 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   ALLOW_ORIGINS: parseCsv(process.env.ALLOW_ORIGINS),
   PUBLIC_BASE_PATH: parseBasePath(process.env.PUBLIC_BASE_PATH),
-  INTEGRALAB_API_BASE_URL: (process.env.INTEGRALAB_API_BASE_URL || 'http://localhost:3000').replace(/\/+$/, ''),
+  INTEGRALAB_API_BASE_URL: (process.env.INTEGRALAB_API_BASE_URL || 'https://api.stg.datanorte.com.br').replace(/\/+$/, ''),
   LAB_APOIO_TENANT_ID: process.env.LAB_APOIO_TENANT_ID?.trim() || '',
   LAB_APOIO_VINCULO_ID: process.env.LAB_APOIO_VINCULO_ID?.trim() || '',
   LAB_APOIO_AUTH_SECRET: process.env.LAB_APOIO_AUTH_SECRET?.trim() || '',

@@ -69,8 +69,8 @@ function resolveErrorMessage(data: unknown, fallback: string) {
 export class LabApoioApiClient implements LabApoioApiClientLike {
   private readonly http = axios.create();
 
-  constructor(options: { baseUrl: string; timeoutMs: number }) {
-    this.http.defaults.baseURL = options.baseUrl.replace(/\/+$/, '');
+  constructor(options: { baseUrl?: string; timeoutMs: number }) {
+    this.http.defaults.baseURL = (options.baseUrl || 'https://api.stg.datanorte.com.br').replace(/\/+$/, '');
     this.http.defaults.timeout = options.timeoutMs;
   }
 

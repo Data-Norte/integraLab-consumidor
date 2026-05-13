@@ -72,6 +72,7 @@ if not defined API_BASE_URL (
 
 set "API_BASE_URL=%API_BASE_URL:"=%"
 if "%API_BASE_URL:~-1%"=="/" set "API_BASE_URL=%API_BASE_URL:~0,-1%"
+
 set "API_HEALTH_URL=%API_BASE_URL%/health"
 if /I "%API_BASE_URL%"=="http://127.0.0.1:3000" set "API_CAN_AUTOSTART=1"
 if /I "%API_BASE_URL%"=="http://localhost:3000" set "API_CAN_AUTOSTART=1"

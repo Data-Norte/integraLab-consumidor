@@ -51,7 +51,7 @@ Base em [.env.example](./.env.example):
 Configuracao local atual em `.env`:
 
 - `PORT=3001`
-- `INTEGRALAB_API_BASE_URL=http://127.0.0.1:3000`
+- `INTEGRALAB_API_BASE_URL=https://api.stg.datanorte.com.br`
 - `LAB_APOIO_TENANT_ID=6b316f90-3803-4e94-b964-3567a0acb0f4`
 - `LAB_APOIO_VINCULO_ID=c0b71c07-cacc-4f77-b9d8-530c19653b54`
 - `LAB_APOIO_FORNEC_ID=8`
