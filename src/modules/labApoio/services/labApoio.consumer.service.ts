@@ -72,13 +72,14 @@ type GenerateQaHmlAgendamentosDeps = {
 
 const defaultApiClient = new LabApoioApiClient({
   baseUrl: env.INTEGRALAB_API_BASE_URL,
-  timeoutMs: env.API_REQUEST_TIMEOUT_MS,
+  timeoutMs: 0,
 });
 const inFlightAgendaExameItems = new Set<number>();
 
 function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
+
 
 function buildIdempotencyKey(prefix: string, exam: PendingExam) {
   return `${prefix}-${exam.agendaExameId}-${exam.agendaExameItemId}`;
@@ -148,11 +149,7 @@ export async function processPendingExams(
     authSecret: deps.authSecret ?? runtimeSecrets.authSecret,
     fornecId: deps.fornecId ?? env.LAB_APOIO_FORNEC_ID,
     sendInlinePdf: deps.sendInlinePdf ?? env.LAB_APOIO_SEND_INLINE_PDF,
-    batchSize: deps.batchSize ?? env.PROCESSING_BATCH_SIZE,
-    processingDelayMs: deps.processingDelayMs ?? env.PROCESSING_DELAY_MS,
-    maxBatches: deps.maxBatches ?? env.PROCESSING_MAX_BATCHES,
     now: deps.now ?? (() => new Date()),
-    sleep: deps.sleep ?? sleep,
   };
 
   if (!params.tenantId) {
@@ -166,11 +163,21 @@ export async function processPendingExams(
     );
   }
 
+  console.log('[processPendingExams] Iniciando processamento', {
+    tenantId: params.tenantId,
+    vinculoId: services.vinculoId,
+  });
+
   const token = await services.apiClient.issueIntegrationToken({
     vinculoId: services.vinculoId,
     segredo: services.authSecret,
   });
   const operationEnv = token.operationEnv ?? token.ambiente;
+
+  console.log('[processPendingExams] Token emitido', {
+    ambiente: operationEnv,
+    vinculoId: token.vinculoId,
+  });
 
   const run = services.qaStorage.createRun({
     tenantId: params.tenantId,
@@ -192,40 +199,34 @@ export async function processPendingExams(
     runId: run.id,
   });
 
-  const attemptedItems = new Set<number>();
   const detailCache = new Map<number, PendingExamDetail | null>();
   const results: ProcessPendingExamsResult['results'] = [];
-  let batches = 0;
-  let completionReason: ProcessPendingExamsResult['completionReason'] = 'SEM_PENDENCIAS';
+  let completionReason: ProcessPendingExamsResult['completionReason'] = 'FINALIZADO';
 
-  while (batches < services.maxBatches) {
-    const batch = await services.apiClient.listPendingExams({
-      token: token.token,
-      tenantId: params.tenantId,
-      page: 1,
-      limit: params.limit ?? services.batchSize,
-    });
+  console.log('[processPendingExams] Buscando exames pendentes', { limit: 3 });
 
-    if (batch.rows.length === 0) {
-      completionReason = 'SEM_PENDENCIAS';
-      break;
-    }
+  const batch = await services.apiClient.listPendingExams({
+    token: token.token,
+    tenantId: params.tenantId,
+    page: 1,
+    limit: 3,
+  });
 
-    const freshRows = batch.rows.filter(row => !attemptedItems.has(row.agendaExameItemId));
-    if (freshRows.length === 0) {
-      completionReason = 'LOTE_REPETIDO';
-      break;
-    }
+  console.log('[processPendingExams] Lote recebido', {
+    totalLinhas: batch.rows.length,
+    totalPaginas: batch.totalPages ?? 'N/A',
+    totalGeral: batch.total ?? 'N/A',
+  });
 
-    batches += 1;
+  if (batch.rows.length === 0) {
+    console.log('[processPendingExams] Nenhum exame pendente encontrado');
+    completionReason = 'SEM_PENDENCIAS';
+  } else {
+    console.log('[processPendingExams] Processando exames', { total: batch.rows.length });
 
-    for (const exam of freshRows) {
-      attemptedItems.add(exam.agendaExameItemId);
-
+    for (const exam of batch.rows) {
       if (inFlightAgendaExameItems.has(exam.agendaExameItemId)) {
-        logEvent('info', 'pending_exam_skipped_inflight', {
-          tenantId: params.tenantId,
-          agendaExameId: exam.agendaExameId,
+        console.log('[processPendingExams] Item ja em voo, pulando', {
           agendaExameItemId: exam.agendaExameItemId,
         });
         continue;
@@ -234,11 +235,14 @@ export async function processPendingExams(
       inFlightAgendaExameItems.add(exam.agendaExameItemId);
 
       try {
-        if (services.processingDelayMs > 0) {
-          await services.sleep(services.processingDelayMs);
-        }
-
         const now = services.now();
+
+        console.log('[processPendingExams] Buscando detalhe do exame', {
+          agendaExameId: exam.agendaExameId,
+          agendaExameItemId: exam.agendaExameItemId,
+          codexame: exam.codexame,
+        });
+
         const detail = await getExamDetailSafe(
           services.apiClient,
           token.token,
@@ -246,12 +250,25 @@ export async function processPendingExams(
           exam,
           detailCache
         );
+
+        console.log('[processPendingExams] Detalhe do exame obtido', {
+          agendaExameItemId: exam.agendaExameItemId,
+          detailObtido: !!detail,
+        });
+
         const detailSnapshot = buildExamDetailSnapshot(exam, detail);
         const generated = buildSyntheticExamArtifacts({
           tenantId: params.tenantId,
           exam,
           examDetail: detail,
           now,
+        });
+
+        console.log('[processPendingExams] Artifacts sinteticos gerados', {
+          agendaExameItemId: exam.agendaExameItemId,
+          resultadoPreview: generated.resultPreview,
+          possuiPdf: !!generated.pdfBase64,
+          pdfFileName: generated.pdfFileName,
         });
 
         const payload = {
@@ -269,12 +286,26 @@ export async function processPendingExams(
             : undefined,
         };
 
+        console.log('[processPendingExams] Enviando resultado', {
+          agendaExameId: exam.agendaExameId,
+          agendaExameItemId: exam.agendaExameItemId,
+          codexame: exam.codexame,
+          idempotencyKey: payload.idempotencyKey,
+          sendInlinePdf: services.sendInlinePdf,
+        });
+
         try {
           const envio = await services.apiClient.sendResultado({
             token: token.token,
             tenantId: params.tenantId,
             agendaExameId: exam.agendaExameId,
             payload,
+          });
+
+          console.log('[processPendingExams] Resultado enviado com sucesso', {
+            agendaExameItemId: exam.agendaExameItemId,
+            duplicado: envio.duplicado,
+            agendaExameId: exam.agendaExameId,
           });
 
           const qaItem = services.qaStorage.recordItem({
@@ -321,6 +352,12 @@ export async function processPendingExams(
           });
         } catch (error) {
           const message = toErrorMessage(error);
+
+          console.log('[processPendingExams] Erro ao enviar resultado', {
+            agendaExameItemId: exam.agendaExameItemId,
+            erro: message,
+          });
+
           const qaItem = services.qaStorage.recordItem({
             runId: run.id,
             tenantId: params.tenantId,
@@ -373,10 +410,6 @@ export async function processPendingExams(
     }
   }
 
-  if (batches >= services.maxBatches && completionReason === 'SEM_PENDENCIAS' && results.length > 0) {
-    completionReason = 'MAX_BATCHES_REACHED';
-  }
-
   const successCount = results.filter(result => result.status === 'SUCESSO').length;
   const errorCount = results.filter(result => result.status === 'ERRO').length;
   const duplicateCount = results.filter(result => result.duplicado).length;
@@ -390,8 +423,8 @@ export async function processPendingExams(
     vinculoId: token.vinculoId,
     triggerEvent: params.triggerEvent ?? 'MANUAL',
     triggerEventId: params.triggerEventId ?? null,
-    batches,
-    attempted: attemptedItems.size,
+    batches: 1,
+    attempted: results.length,
     successCount,
     errorCount,
     duplicateCount,
@@ -402,8 +435,8 @@ export async function processPendingExams(
   services.qaStorage.finishRun({
     runId: run.id,
     ambiente: summary.ambiente,
-    batches: summary.batches,
-    attempted: summary.attempted,
+    batches: 1,
+    attempted: results.length,
     successCount: summary.successCount,
     errorCount: summary.errorCount,
     duplicateCount: summary.duplicateCount,
@@ -421,6 +454,18 @@ export async function processPendingExams(
     duplicateCount: summary.duplicateCount,
     completionReason: summary.completionReason,
     runId: summary.runId,
+  });
+
+  console.log('[processPendingExams] Processamento finalizado', {
+    runId: summary.runId,
+    tenantId: summary.tenantId,
+    ambiente: summary.ambiente,
+    batches: summary.batches,
+    attempted: summary.attempted,
+    successCount: summary.successCount,
+    errorCount: summary.errorCount,
+    duplicateCount: summary.duplicateCount,
+    completionReason: summary.completionReason,
   });
 
   return summary;
