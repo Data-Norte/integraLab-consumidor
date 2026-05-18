@@ -203,13 +203,13 @@ export async function processPendingExams(
   const results: ProcessPendingExamsResult['results'] = [];
   let completionReason: ProcessPendingExamsResult['completionReason'] = 'FINALIZADO';
 
-  console.log('[processPendingExams] Buscando exames pendentes', { limit: 3 });
+  console.log('[processPendingExams] Buscando exames pendentes', { limit: 5 });
 
   const batch = await services.apiClient.listPendingExams({
     token: token.token,
     tenantId: params.tenantId,
     page: 1,
-    limit: 3,
+    limit: 5,
   });
 
   console.log('[processPendingExams] Lote recebido', {
