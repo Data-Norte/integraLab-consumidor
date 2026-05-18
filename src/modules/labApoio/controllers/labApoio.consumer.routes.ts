@@ -53,6 +53,7 @@ async function buildWebhookResponse(
   parsed: ParsedIncomingWebhook;
   result: ProcessPendingExamsResult | null;
   autoProcessed: boolean;
+  error?: string;
 }> {
   const parsed = services.parseIncomingWebhook({
     headers: req.headers,
@@ -68,31 +69,52 @@ async function buildWebhookResponse(
     };
   }
 
-  const result = await services.processPendingExams({
-    tenantId: parsed.headers.tenantId,
-    tenantName: parsed.payload.tenant.nome,
-    triggerEvent: parsed.payload.event,
-    triggerEventId: parsed.headers.eventId,
-    source: 'WEBHOOK',
-    webhookContext: {
-      headers: {
-        tenantId: parsed.headers.tenantId,
-        vinculoId: parsed.headers.vinculoId,
-        eventId: parsed.headers.eventId,
-        timestamp: parsed.headers.timestamp,
-        signature: parsed.headers.signature,
-        signatureAlg: parsed.headers.signatureAlg,
+  try {
+    const result = await services.processPendingExams({
+      tenantId: parsed.headers.tenantId,
+      tenantName: parsed.payload.tenant.nome,
+      triggerEvent: parsed.payload.event,
+      triggerEventId: parsed.headers.eventId,
+      source: 'WEBHOOK',
+      webhookContext: {
+        headers: {
+          tenantId: parsed.headers.tenantId,
+          vinculoId: parsed.headers.vinculoId,
+          eventId: parsed.headers.eventId,
+          timestamp: parsed.headers.timestamp,
+          signature: parsed.headers.signature,
+          signatureAlg: parsed.headers.signatureAlg,
+        },
+        payload: parsed.payload,
+        rawBody: req.rawBody || '',
       },
-      payload: parsed.payload,
-      rawBody: req.rawBody || '',
-    },
-  });
+    });
 
-  return {
-    parsed,
-    result,
-    autoProcessed: true,
-  };
+    return {
+      parsed,
+      result,
+      autoProcessed: true,
+    };
+  } catch (error) {
+    const message = error instanceof LabApoioConsumerError ? error.message : '';
+    if (message.includes('Token nao autorizado para esta rota')) {
+      const friendlyMsg =
+        `[WEBHOOK_IGNORADO] Ambiente do vinculo foi alterado para producao. `
+        + `O token emitido em homologacao nao tem mais acesso as rotas HML. `
+        + `Webhook recebido (eventId=${parsed.headers.eventId}) foi validado mas nao processado.`;
+      logEvent('warn', 'webhook_processing_skipped_env_changed', {
+        tenantId: parsed.headers.tenantId,
+        eventId: parsed.headers.eventId,
+      });
+      return {
+        parsed,
+        result: null,
+        autoProcessed: false,
+        error: friendlyMsg,
+      };
+    }
+    throw error;
+  }
 }
 
 export function createLabApoioConsumerRouter(
@@ -117,13 +139,11 @@ export function createLabApoioConsumerRouter(
 
   router.post('/webhook', async (req: Request, res: Response) => {
     try {
-      const { parsed, result, autoProcessed } = await buildWebhookResponse(services, req);
+      const { parsed, result, autoProcessed, error } = await buildWebhookResponse(services, req);
 
       return res.status(202).json({
         success: true,
-        message: autoProcessed
-          ? 'Webhook validado e processamento iniciado.'
-          : 'Webhook validado.',
+        message: 'Webhook validado.',
         data: {
           event: parsed.payload.event,
           eventId: parsed.headers.eventId,
@@ -131,6 +151,7 @@ export function createLabApoioConsumerRouter(
           vinculoId: parsed.headers.vinculoId,
           autoProcessed,
           processing: result,
+          error,
         },
       });
     } catch (error) {
